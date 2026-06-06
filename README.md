@@ -1,89 +1,227 @@
-# ThinkTank — Cold Start Debate Protocol
+# ThinkTank Pixel Council
 
-> Multi-model AI council where agents debate any topic with **memory reset between rounds** — eliminating confirmation bias and echo chambers.
+ThinkTank Pixel Council is a full-stack AI debate app that lets users ask a question, configure a small council of LLM agents, and watch them debate in a live WhatsApp-style group chat. The backend manages provider keys, streams arguments token by token, maps claims for agreement or contradiction, and produces a final verdict.
 
-## What it does
+## Project Overview
 
-ThinkTank pits multiple real LLMs against each other in structured debates. The key innovation is the **Cold Start Protocol** (inspired by Andrej Karpathy's LLM Council concept):
+ThinkTank is built for people who want to compare ideas, stress-test answers, or turn a broad question into a structured multi-perspective discussion. Instead of asking one model for one answer, the app seats multiple AI agents with different roles and personalities, lets them respond to each other over multiple rounds, and then summarizes the strongest position.
 
-- **Round 1**: Each agent argues from scratch with no context
-- **Round 2+**: Each agent sees ONLY what *other* agents said in the previous round — never their own arguments. Memory is fully wiped.
-- **Judge**: Reads all rounds from all agents, identifies independent convergence (strong signal of truth), and declares a winner
+The app includes two related experiences:
 
-This produces genuine independent reasoning each round — same model, potentially different conclusion — not just position defense.
+- **ThinkTank Debate**: a live AI council debate with configurable agents, rounds, models, Cold Start Trials, a contradiction map, and a final winner.
+- **JudgeAI**: a response comparison workspace that scores two candidate answers against the same prompt using an OpenAI-backed judge.
 
----
+## Problem Statement
 
-## Quick Start
+Single-model answers can be persuasive even when they miss important tradeoffs, make unsupported claims, or fail to represent opposing viewpoints. For students, builders, researchers, and hackathon teams, it is hard to quickly see where arguments agree, conflict, or need more evidence.
 
-```bash
-pip install -r requirements.txt
-python main.py
-# Open http://localhost:8010
+## Solution
+
+ThinkTank turns one prompt into a structured debate. Each AI agent approaches the topic from a different role, streams its argument into a shared group chat, and reacts to the previous round. The backend extracts claims after each argument, detects simple convergence or contradiction, and asks a judge agent to produce a final verdict.
+
+## Features
+
+- **WhatsApp-style group debate**: debate messages appear in one chronological group chat with participant avatars, round dividers, typing state, and delivered state.
+- **Configurable AI council**: choose 2 to 5 agents, edit their names, roles, personalities, providers, and models.
+- **Backend-managed provider keys**: Gemini and OpenAI API keys stay on the server and are never sent from the browser.
+- **Live SSE streaming**: arguments stream token by token from the backend to the React frontend.
+- **Cold Start Trials**: between rounds, agents are prevented from seeing their own previous response and must react only to other agents.
+- **Contradiction Map**: completed arguments are analyzed into claims, then displayed as agreement or conflict signals.
+- **Consensus-seeking rounds**: debate can stop early when convergence is detected, with a configurable round cap.
+- **Final verdict and winner**: the judge agent reviews the debate transcript and names the strongest council member.
+- **JudgeAI comparator**: compare two candidate responses with OpenAI-backed scoring for accuracy, completeness, clarity, safety, and reasoning.
+- **Security controls**: CORS allow-listing, request size limits, rate limits, provider/model allow-listing, safe static serving, and browser hardening headers.
+
+## Tech Stack
+
+- **Frontend**: React 19, Vite, CSS
+- **Backend**: Python, FastAPI, Pydantic
+- **Streaming**: Server-Sent Events
+- **LLM Providers**: Gemini via Google Generative AI SDK, OpenAI via OpenAI SDK
+- **Testing**: pytest
+- **Storage**: no database; runtime state is in memory
+
+## Codex And OpenAI Usage
+
+Codex was used to build and iterate on the full-stack project structure, backend API contracts, security guardrails, documentation, and frontend experience. The current app includes Codex-assisted implementation for the FastAPI backend, React/Vite UI, debate orchestration, JudgeAI workflow, tests, and the group-chat debate interface.
+
+OpenAI is used at runtime when `OPENAI_API_KEY` is configured:
+
+- OpenAI models can be selected as debate agents.
+- JudgeAI uses OpenAI to evaluate two candidate responses and return structured scoring.
+- Provider calls are made server-side so API keys remain in backend environment variables.
+
+Gemini is also supported and is the default debate provider when `GEMINI_API_KEY` is configured.
+
+## Demo And Links
+
+- **Demo / pitch video**: add your video link here before submission.
+- **Live hosted app**: not available yet.
+- **Local app**: `http://127.0.0.1:5173` during frontend development.
+- **Production-style local app**: `http://127.0.0.1:8010` after `npm run build` and backend startup.
+
+## Screenshots
+
+Add final screenshots here before submission. Suggested captures:
+
+| Screen | Description | Image |
+| --- | --- | --- |
+| Landing | User enters a debate question | `docs/screenshots/landing.png` |
+| Council setup | Agents, roles, providers, rounds, and features | `docs/screenshots/setup.png` |
+| Debate chat | WhatsApp-style AI group debate | `docs/screenshots/debate-chat.png` |
+| Claim map | Live agreement and contradiction signals | `docs/screenshots/claim-map.png` |
+| JudgeAI | Response comparison and scoring | `docs/screenshots/judgeai.png` |
+
+Example Markdown once images are added:
+
+```md
+![ThinkTank debate chat](docs/screenshots/debate-chat.png)
 ```
 
----
+## Setup Instructions
 
-## Provider Setup
+### 1. Clone and enter the project
 
-You need API keys for at least **2 providers** to run a debate.
-
-| Provider | Model | Get Key |
-|----------|-------|---------|
-| **OpenAI** | gpt-4o, gpt-4o-mini | https://platform.openai.com |
-| **Anthropic Claude** | claude-opus-4-5, claude-haiku-4-5 | https://console.anthropic.com |
-| **Google Gemini** | gemini-2.0-flash, gemini-1.5-flash | https://makersuite.google.com |
-| **xAI Grok** | grok-3, grok-3-mini | https://console.x.ai |
-
-Keys are entered in the app UI and never stored to disk.
-
----
-
-## How to Use
-
-1. **Screen 1 — Provider Setup**: Enter API keys for each provider you want to use. Hit "Test" to validate each key.
-2. **Screen 2 — Council Setup**: 
-   - Enter the debate topic (anything works)
-   - Configure 2–5 agents: give each a name, role, and provider
-   - Roles: Optimist, Skeptic, Devil's Advocate, Neutral, or custom
-   - Choose 1–3 rounds
-3. **Screen 3 — Battle**: Watch agents debate live with streaming text, then get a synthesized judge verdict
-
----
-
-## Architecture
-
-```
-thinkTank/
-├── main.py        # FastAPI backend — provider routing, SSE streaming, debate logic
-├── index.html     # Single-file frontend — RPG battle UI, vanilla JS/CSS
-├── requirements.txt
-└── README.md
+```powershell
+git clone <your-repo-url>
+cd ThinkTank
 ```
 
-**Backend**: FastAPI + Python async, SSE streaming via `StreamingResponse`  
-**Frontend**: Single HTML file, no frameworks, vanilla JS + CSS  
-**Streaming**: Server-Sent Events, word-by-word text streaming  
+### 2. Create and activate a Python environment
 
----
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install Python dependencies
+
+```powershell
+.\.venv\Scripts\python -m pip install -r requirements.txt
+```
+
+### 4. Install frontend dependencies
+
+```powershell
+npm install
+```
+
+### 5. Configure environment variables
+
+Create `.env` from `.env.example`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Add provider keys:
+
+```text
+GEMINI_API_KEY=your_gemini_key
+OPENAI_API_KEY=your_openai_key
+```
+
+`GEMINI_API_KEY` enables Gemini debate agents. `OPENAI_API_KEY` enables OpenAI debate agents and JudgeAI.
+
+### 6. Start the backend
+
+```powershell
+.\.venv\Scripts\python -m uvicorn main:app --reload --port 8010
+```
+
+### 7. Start the frontend
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
+## Production-Style Local Run
+
+Build the frontend:
+
+```powershell
+npm run build
+```
+
+Start FastAPI:
+
+```powershell
+.\.venv\Scripts\python -m uvicorn main:app --port 8010
+```
+
+Open:
+
+```text
+http://127.0.0.1:8010
+```
+
+In this mode, FastAPI serves the built frontend from `dist/`.
+
+## API
+
+- `GET /api/health`: health check
+- `GET /api/providers`: configured provider metadata and supported models
+- `POST /api/validate-provider`: validates one configured provider/model combination
+- `POST /api/debate`: streams the debate as Server-Sent Events
+- `POST /api/judgeai`: compares two responses with an OpenAI-backed judge
+
+Provider keys are read from backend environment variables. The browser never sends provider API keys.
 
 ## Environment Variables
 
+```text
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+PORT=8010
+THINKTANK_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8010,http://localhost:8010
+THINKTANK_MAX_REQUEST_BYTES=65536
+THINKTANK_VALIDATE_RATE_LIMIT=20
+THINKTANK_VALIDATE_RATE_WINDOW_SECONDS=60
+THINKTANK_DEBATE_RATE_LIMIT=6
+THINKTANK_DEBATE_RATE_WINDOW_SECONDS=60
 ```
-PORT=8010   # Server port (default: 8010)
+
+## Security Controls
+
+- CORS is restricted by `THINKTANK_ALLOWED_ORIGINS`.
+- Expensive provider-backed endpoints have per-client IP in-memory rate limits.
+- JSON request bodies are capped by `THINKTANK_MAX_REQUEST_BYTES`.
+- Provider/model combinations are checked against the backend provider allow-list.
+- Providers without backend keys are hidden from `/api/providers` and rejected if requested directly.
+- Static frontend file serving is constrained to the built `dist/` directory.
+- Responses include browser hardening headers such as CSP, frame blocking, referrer policy, and content-type sniffing protection.
+
+## Project Structure
+
+```text
+main.py                 FastAPI app, API routes, middleware, and static serving
+thinktank/models.py     Pydantic request and transcript models
+thinktank/providers.py  Provider registry and streaming adapters
+thinktank/debate_engine.py
+thinktank/analysis.py   Claim, convergence, and contradiction heuristics
+thinktank/judgeai.py    OpenAI-backed response comparison
+src/main.jsx            React app and UI state
+src/styles.css          App styling and responsive layouts
+tests/                  Backend contract and security tests
 ```
 
----
+## Tests
 
-## SSE Event Reference
+```powershell
+.\.venv\Scripts\python -m pytest
+```
 
-| Event | Payload |
-|-------|---------|
-| `round_start` | `{ round, total, label }` |
-| `agent_start` | `{ agent, provider, model, round }` |
-| `chunk` | `{ agent, text, role? }` |
-| `agent_done` | `{ agent }` |
-| `memory_reset` | `{ round }` — signals cold start wipe |
-| `judge_start` | `{}` |
-| `done` | `{ winner }` |
-| `error` | `{ message }` |
+## Future Improvements
+
+- Add hosted deployment and update the live link.
+- Add final screenshots and demo video links.
+- Save debate transcripts and JudgeAI reports.
+- Add authentication for shared hosted use.
+- Replace in-memory rate limiting with Redis or another shared store.
+- Add stronger semantic contradiction detection with embeddings or model-based analysis.
