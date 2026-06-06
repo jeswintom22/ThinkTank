@@ -1,1684 +1,1471 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ThinkTank</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #080810;
-      --panel: #0f0f1e;
-      --panel-2: #15152a;
-      --panel-3: #101025;
-      --accent: #7c3aed;
-      --accent-2: #4f46e5;
-      --line: rgba(124, 58, 237, 0.25);
-      --text: #f8fafc;
-      --muted: #a3a3b8;
-      --danger: #f87171;
-      --ok: #22c55e;
-      --gold: #facc15;
-      --openai: #10b981;
-      --gemini: #4285f4;
-      --claude: #d97757;
-      --grok: #e5e7eb;
-      --radius: 8px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    body {
-      overflow: hidden;
-      background:
-        linear-gradient(rgba(124, 58, 237, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124, 58, 237, 0.07) 1px, transparent 1px),
-        linear-gradient(145deg, #080810 0%, #0d0d19 48%, #080810 100%);
-      background-size: 42px 42px, 42px 42px, auto;
-    }
-
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-      border: 0;
-    }
-
-    h1,
-    h2,
-    h3,
-    .brand,
-    .rpg-name,
-    .provider-badge,
-    .round-banner,
-    .battle-title,
-    .top-logo,
-    .stat-label,
-    .winner-crown {
-      font-family: "Rajdhani", sans-serif;
-      letter-spacing: 0;
-    }
-
-    .screen {
-      min-height: 100vh;
-      display: none;
-    }
-
-    .screen.active {
-      display: flex;
-    }
-
-    .settings-screen,
-    .setup-screen {
-      align-items: center;
-      justify-content: center;
-      padding: 28px 18px;
-      overflow-y: auto;
-    }
-
-    .panel {
-      width: min(100%, 540px);
-      background: rgba(15, 15, 30, 0.96);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: 0 0 38px rgba(124, 58, 237, 0.16), 0 24px 80px rgba(0, 0, 0, 0.44);
-      padding: 28px;
-    }
-
-    .setup-panel {
-      width: min(100%, 1040px);
-    }
-
-    .brand {
-      margin: 0;
-      font-size: 48px;
-      line-height: 0.95;
-      font-weight: 700;
-      color: #ffffff;
-      text-align: center;
-      text-shadow: 0 0 28px rgba(124, 58, 237, 0.54);
-    }
-
-    .subtitle {
-      margin: 9px 0 26px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 1rem;
-    }
-
-    .provider-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 14px;
-      margin: 12px 0;
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-    }
-
-    .provider-title {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      font-weight: 800;
-    }
-
-    .key-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #6b7280;
-      box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.13);
-    }
-
-    .key-dot.valid {
-      background: var(--ok);
-      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
-    }
-
-    .key-dot.invalid {
-      background: var(--danger);
-      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18);
-    }
-
-    .key-wrap {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr 44px;
-      gap: 8px;
-    }
-
-    .input,
-    .textarea,
-    .select {
-      width: 100%;
-      color: var(--text);
-      background: #0a0a15;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      outline: none;
-      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-    }
-
-    .input,
-    .select {
-      min-height: 44px;
-      padding: 0 12px;
-    }
-
-    .textarea {
-      min-height: 94px;
-      resize: vertical;
-      padding: 11px 12px;
-      line-height: 1.42;
-    }
-
-    .input:focus,
-    .textarea:focus,
-    .select:focus {
-      background: #101025;
-      border-color: rgba(124, 58, 237, 0.82);
-      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14);
-    }
-
-    .icon-btn {
-      display: inline-grid;
-      place-items: center;
-      min-width: 44px;
-      min-height: 44px;
-      border-radius: var(--radius);
-      color: var(--text);
-      background: #17172d;
-      border: 1px solid var(--line);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 18px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-height: 48px;
-      padding: 0 18px;
-      border-radius: var(--radius);
-      color: var(--text);
-      background: #17172d;
-      border: 1px solid var(--line);
-      font-weight: 800;
-    }
-
-    .btn.primary {
-      flex: 1;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 24px rgba(124, 58, 237, 0.32), 0 14px 34px rgba(79, 70, 229, 0.2);
-    }
-
-    .btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.48;
-      box-shadow: none;
-    }
-
-    .setup-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 18px;
-      margin-bottom: 22px;
-    }
-
-    .setup-head h1 {
-      margin: 0;
-      font-size: clamp(2.4rem, 6vw, 3.8rem);
-      line-height: 0.92;
-    }
-
-    .setup-head p {
-      margin: 7px 0 0;
-      color: var(--muted);
-    }
-
-    .mini-link {
-      flex: 0 0 auto;
-      min-height: 38px;
-      padding: 0 12px;
-      color: #c4b5fd;
-      background: rgba(124, 58, 237, 0.1);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      font-weight: 700;
-    }
-
-    .field-label {
-      display: block;
-      margin: 0 0 8px;
-      color: #e6e1ff;
-      font-weight: 800;
-    }
-
-    .topic-input {
-      min-height: 58px;
-      font-size: 1rem;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 24px 0 12px;
-    }
-
-    .section-head h2 {
-      margin: 0;
-      font-size: 1.35rem;
-    }
-
-    .agents-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .setup-agent-card {
-      display: grid;
-      grid-template-columns: 54px 1fr 44px;
-      gap: 12px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.025);
-    }
-
-    .setup-avatar,
-    .battle-avatar,
-    .chat-avatar {
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      color: #05050b;
-      font-family: "Rajdhani", sans-serif;
-      font-weight: 700;
-      line-height: 1;
-      box-shadow: 0 0 20px color-mix(in srgb, currentColor 30%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.24);
-    }
-
-    .setup-avatar {
-      width: 50px;
-      height: 50px;
-      font-size: 1.35rem;
-    }
-
-    .agent-fields {
-      display: grid;
-      gap: 9px;
-      min-width: 0;
-    }
-
-    .remove-btn {
-      align-self: start;
-      color: #fecaca;
-      background: rgba(248, 113, 113, 0.12);
-      border-color: rgba(248, 113, 113, 0.32);
-    }
-
-    .round-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-top: 22px;
-    }
-
-    .round-pills {
-      display: grid;
-      grid-template-columns: repeat(3, 74px);
-      gap: 8px;
-    }
-
-    .round-pill {
-      min-height: 40px;
-      color: #c7c7dd;
-      background: #15152a;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      font-weight: 800;
-    }
-
-    .round-pill.active {
-      color: #ffffff;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.88), rgba(79, 70, 229, 0.88));
-      box-shadow: 0 0 18px rgba(124, 58, 237, 0.28);
-    }
-
-    .start-battle {
-      min-width: 220px;
-      min-height: 54px;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      border: 1px solid rgba(167, 139, 250, 0.55);
-      border-radius: var(--radius);
-      font-family: "Rajdhani", sans-serif;
-      font-size: 1.24rem;
-      font-weight: 700;
-      box-shadow: 0 0 28px rgba(124, 58, 237, 0.46), 0 18px 42px rgba(0, 0, 0, 0.28);
-    }
-
-    .battle-screen {
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .battle-topbar {
-      min-height: 68px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
-      align-items: center;
-      padding: 12px 22px;
-      background: rgba(15, 15, 30, 0.98);
-      border-bottom: 1px solid var(--line);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
-      z-index: 5;
-    }
-
-    .top-logo {
-      display: flex;
-      gap: 12px;
-      align-items: baseline;
-      min-width: 0;
-      font-weight: 700;
-    }
-
-    .top-logo span:first-child {
-      font-size: 1.6rem;
-      color: #ffffff;
-      text-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
-    }
-
-    .topic-line {
-      min-width: 0;
-      overflow: hidden;
-      color: #d8d6ee;
-      font-family: "Inter", sans-serif;
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .battle-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .meta-pill,
-    .round-label-pill {
-      min-height: 34px;
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 0 12px;
-      background: rgba(124, 58, 237, 0.12);
-      color: #eeeaff;
-      font-family: "Rajdhani", sans-serif;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .battle-main {
-      min-height: 0;
-      flex: 1;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-    }
-
-    .portrait-panel {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(180px, 1fr);
-      gap: 12px;
-      padding: 14px 18px;
-      overflow-x: auto;
-      background: rgba(8, 8, 16, 0.82);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .portrait-card {
-      position: relative;
-      min-height: 214px;
-      display: grid;
-      justify-items: center;
-      align-content: start;
-      gap: 7px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
-      transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
-    }
-
-    .portrait-card.active {
-      transform: translateY(-2px);
-      border-color: var(--agent-color);
-      box-shadow: 0 0 20px var(--agent-glow), inset 0 0 24px rgba(255, 255, 255, 0.025);
-    }
-
-    .portrait-card.winner {
-      border-color: rgba(250, 204, 21, 0.88);
-      box-shadow: 0 0 30px rgba(250, 204, 21, 0.42);
-      animation: goldPulse 1.6s ease-in-out infinite;
-    }
-
-    .winner-crown {
-      position: absolute;
-      top: -18px;
-      font-size: 1.9rem;
-      filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.6));
-      display: none;
-    }
-
-    .portrait-card.winner .winner-crown {
-      display: block;
-    }
-
-    .battle-avatar {
-      width: 56px;
-      height: 56px;
-      font-size: 1.65rem;
-      background: var(--agent-color);
-      color: var(--avatar-text);
-    }
-
-    .rpg-name {
-      width: 100%;
-      overflow: hidden;
-      text-align: center;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-
-    .provider-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 24px;
-      max-width: 100%;
-      padding: 0 9px;
-      color: var(--agent-color);
-      background: color-mix(in srgb, var(--agent-color) 13%, transparent);
-      border: 1px solid color-mix(in srgb, var(--agent-color) 42%, transparent);
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .strength-block {
-      width: 100%;
-      margin-top: 6px;
-    }
-
-    .stat-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-      color: #c7c2e8;
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .strength-track {
-      height: 12px;
-      overflow: hidden;
-      background: #070711;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-    }
-
-    .strength-fill {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: var(--agent-color);
-      box-shadow: 0 0 14px var(--agent-glow);
-      transition: width 600ms ease;
-    }
-
-    .status-text {
-      width: 100%;
-      min-height: 20px;
-      overflow: hidden;
-      color: var(--muted);
-      font-size: 0.86rem;
-      font-weight: 700;
-      text-align: center;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .battle-log-wrap {
-      min-height: 0;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      background: rgba(15, 15, 30, 0.86);
-    }
-
-    .complete-banner {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 4;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 13px 22px;
-      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(124, 58, 237, 0.22));
-      border-bottom: 1px solid rgba(250, 204, 21, 0.44);
-      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
-      animation: slideDown 420ms ease both;
-    }
-
-    .battle-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #fff7c2;
-    }
-
-    .battle-log {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px max(18px, calc((100vw - 980px) / 2)) 28px;
-      scroll-behavior: smooth;
-    }
-
-    .round-banner {
-      margin: 16px 0 22px;
-      padding: 12px 14px;
-      color: #ffffff;
-      text-align: center;
-      font-size: 1.18rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.66), rgba(79, 70, 229, 0.5));
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: 0 0 22px rgba(124, 58, 237, 0.28);
-    }
-
-    .message-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      margin: 16px 0;
-      animation: messageIn 220ms ease both;
-    }
-
-    .chat-avatar {
-      flex: 0 0 34px;
-      width: 34px;
-      height: 34px;
-      background: var(--agent-color);
-      color: var(--avatar-text);
-      font-size: 1.02rem;
-    }
-
-    .message-body {
-      min-width: 0;
-      max-width: min(780px, calc(100vw - 94px));
-    }
-
-    .message-head {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin: 0 0 5px;
-    }
-
-    .message-name {
-      overflow: hidden;
-      color: var(--agent-color);
-      font-family: "Rajdhani", sans-serif;
-      font-size: 1.02rem;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .message-badge {
-      min-height: 20px;
-      padding: 0 7px;
-      font-size: 0.7rem;
-    }
-
-    .bubble {
-      width: fit-content;
-      max-width: 100%;
-      min-height: 42px;
-      padding: 12px 14px;
-      color: #f6f6fb;
-      background: #111126;
-      border: 1px solid rgba(124, 58, 237, 0.22);
-      border-left: 2px solid var(--agent-color);
-      border-radius: 8px;
-      line-height: 1.55;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-    }
-
-    .judge-row {
-      display: block;
-      margin: 24px 0;
-    }
-
-    .judge-card {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 16px;
-      color: #fffbe6;
-      background: linear-gradient(135deg, rgba(250, 204, 21, 0.14), rgba(15, 15, 30, 0.94));
-      border: 1px solid rgba(250, 204, 21, 0.68);
-      border-radius: var(--radius);
-      box-shadow: 0 0 28px rgba(250, 204, 21, 0.16);
-    }
-
-    .judge-title {
-      margin-bottom: 8px;
-      color: var(--gold);
-      font-family: "Rajdhani", sans-serif;
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .typing-bubble {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      width: 82px;
-      min-height: 38px;
-    }
-
-    .typing-copy {
-      color: var(--muted);
-      font-size: 0.84rem;
-      font-weight: 700;
-    }
-
-    .typing-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #d8d6ee;
-      animation: dotPulse 1s infinite ease-in-out;
-    }
-
-    .typing-dot:nth-child(2) {
-      animation-delay: 120ms;
-    }
-
-    .typing-dot:nth-child(3) {
-      animation-delay: 240ms;
-    }
-
-    .toast {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 20;
-      display: none;
-      width: min(420px, calc(100vw - 36px));
-      padding: 13px 14px;
-      color: #ffe0e0;
-      background: #3b1117;
-      border: 1px solid rgba(248, 113, 113, 0.44);
-      border-radius: var(--radius);
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
-      font-weight: 700;
-    }
-
-    .confetti {
-      position: fixed;
-      inset: 0;
-      z-index: 15;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .confetti i {
-      position: absolute;
-      top: -12px;
-      width: 8px;
-      height: 14px;
-      background: var(--confetti-color);
-      transform: rotate(var(--confetti-rotate));
-      animation: confettiFall 1.9s linear forwards;
-    }
-
-    @keyframes messageIn {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes dotPulse {
-      0%,
-      80%,
-      100% {
-        opacity: 0.35;
-        transform: translateY(0);
-      }
-      40% {
-        opacity: 1;
-        transform: translateY(-4px);
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-100%);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes goldPulse {
-      0%,
-      100% {
-        box-shadow: 0 0 24px rgba(250, 204, 21, 0.28);
-      }
-      50% {
-        box-shadow: 0 0 42px rgba(250, 204, 21, 0.58);
-      }
-    }
-
-    @keyframes confettiFall {
-      to {
-        opacity: 0;
-        transform: translateY(105vh) rotate(calc(var(--confetti-rotate) + 360deg));
-      }
-    }
-
-    @media (max-width: 900px) {
-      .agents-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      body {
-        overflow: auto;
-      }
-
-      .settings-screen,
-      .setup-screen {
-        align-items: flex-start;
-      }
-
-      .panel {
-        padding: 20px;
-      }
-
-      .actions,
-      .setup-head,
-      .round-row,
-      .battle-topbar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .setup-head {
-        display: flex;
-      }
-
-      .round-row {
-        display: flex;
-      }
-
-      .round-pills {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .start-battle {
-        width: 100%;
-      }
-
-      .battle-screen {
-        height: auto;
-        min-height: 100vh;
-      }
-
-      .battle-topbar {
-        display: flex;
-        min-height: auto;
-        padding: 13px 15px;
-      }
-
-      .top-logo {
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .battle-meta {
-        justify-content: flex-start;
-      }
-
-      .battle-main {
-        min-height: calc(100vh - 128px);
-      }
-
-      .portrait-panel {
-        grid-auto-flow: row;
-        grid-auto-columns: initial;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        overflow: visible;
-        padding: 12px;
-      }
-
-      .portrait-card {
-        min-height: 204px;
-        padding: 12px;
-      }
-
-      .battle-log {
-        padding: 18px 12px 24px;
-      }
-
-      .message-body {
-        max-width: calc(100vw - 58px);
-      }
-
-      .bubble {
-        width: 100%;
-      }
-
-      .complete-banner {
-        position: sticky;
-        flex-direction: column;
-        align-items: stretch;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkTank — Cold Start Debate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Syne+Mono&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+<style>
+/* ─── Reset & Root ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #05050f;
+  --surface:     #0b0b1a;
+  --surface-2:   #111128;
+  --surface-3:   #18183a;
+  --border:      rgba(255,255,255,0.07);
+  --border-glow: rgba(124,58,237,0.3);
+  --text:        #eeeeff;
+  --muted:       #7777aa;
+  --dim:         #44446a;
+
+  --openai:   #10b981;
+  --claude:   #d97757;
+  --gemini:   #4285f4;
+  --grok:     #c4c4d4;
+
+  --gold:     #f5c518;
+  --purple:   #7c3aed;
+  --purple-2: #4f46e5;
+  --reset:    #a855f7;
+
+  --font-head: 'Rajdhani', sans-serif;
+  --font-mono: 'Syne Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+
+  --radius: 12px;
+  --radius-sm: 6px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
+
+/* ─── Screen System ────────────────────────────────────────────────── */
+.screen {
+  display: none;
+  min-height: 100vh;
+}
+.screen.active { display: flex; }
+
+/* ─── Backgrounds ──────────────────────────────────────────────────── */
+.grid-bg {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.grid-bg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.12) 0%, transparent 70%);
+}
+
+/* ─── Utility ──────────────────────────────────────────────────────── */
+.provider-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--dim);
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.provider-dot.valid { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.provider-dot.invalid { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.6); }
+
+.badge {
+  font-family: var(--font-head);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+btn, .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface-2);
+  color: var(--text);
+  transition: all var(--transition);
+  text-transform: uppercase;
+}
+.btn:hover { border-color: rgba(124,58,237,0.5); background: var(--surface-3); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--purple), var(--purple-2));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(124,58,237,0.25);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 35px rgba(124,58,237,0.5);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled { background: var(--surface-2); }
+
+input, select, textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color var(--transition);
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(124,58,237,0.5);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+}
+input[type="password"] { font-family: var(--font-mono); letter-spacing: 0.05em; }
+select { appearance: none; cursor: pointer; }
+label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCREEN 1 — PROVIDER SETUP
+══════════════════════════════════════════════════════════════════════ */
+#screen-providers {
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 40px 20px;
+  position: relative;
+}
+
+.s1-panel {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 560px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.1);
+}
+
+.s1-header {
+  padding: 36px 36px 28px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%);
+}
+
+.logo {
+  font-family: var(--font-head);
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #c4b5fd, #818cf8, var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.logo-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+  font-weight: 300;
+}
+
+.cold-start-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  background: rgba(168,85,247,0.1);
+  border: 1px solid rgba(168,85,247,0.25);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #c084fc;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.cold-start-badge::before { content: '❄'; font-style: normal; }
+
+.s1-body { padding: 24px 36px; }
+
+.provider-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition);
+}
+.provider-section:hover { border-color: rgba(124,58,237,0.25); }
+.provider-section:last-of-type { margin-bottom: 24px; }
+
+.provider-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.provider-name {
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 700;
+  flex: 1;
+}
+.provider-models { font-size: 11px; color: var(--muted); }
+
+.key-row { display: flex; gap: 8px; align-items: flex-end; }
+.key-row .key-wrap { position: relative; flex: 1; }
+.key-row input { padding-right: 40px; }
+.eye-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 15px; padding: 0; line-height: 1;
+}
+.eye-btn:hover { color: var(--text); }
+.test-btn {
+  white-space: nowrap;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.model-select-row { margin-top: 10px; }
+
+.s1-explainer {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+  padding: 12px 16px;
+  background: rgba(124,58,237,0.05);
+  border-left: 2px solid rgba(124,58,237,0.3);
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 20px;
+}
+
+.s1-footer { padding: 0 36px 28px; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCREEN 2 — COUNCIL SETUP
+══════════════════════════════════════════════════════════════════════ */
+#screen-setup {
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  position: relative;
+}
+
+.s2-panel {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 680px;
+}
+
+.s2-header {
+  margin-bottom: 28px;
+}
+.s2-title {
+  font-family: var(--font-head);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.s2-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.setup-back {
+  font-size: 12px; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-bottom: 16px; text-decoration: none;
+  transition: color var(--transition);
+}
+.setup-back:hover { color: var(--text); }
+
+.topic-section { margin-bottom: 28px; }
+.topic-input {
+  font-size: 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.section-label {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.agents-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+
+.agent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  position: relative;
+  transition: border-color var(--transition);
+}
+.agent-card:hover { border-color: rgba(124,58,237,0.25); }
+
+.agent-card-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.agent-avatar-sm {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.agent-card-title { font-family: var(--font-head); font-weight: 700; font-size: 15px; flex: 1; }
+.remove-agent {
+  background: none; border: none; cursor: pointer;
+  color: var(--dim); font-size: 18px; padding: 2px;
+  transition: color var(--transition);
+}
+.remove-agent:hover { color: #ef4444; }
+
+.agent-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.agent-fields .full { grid-column: 1/-1; }
+
+.role-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.role-pill {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface-2);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all var(--transition);
+}
+.role-pill:hover { border-color: rgba(124,58,237,0.4); color: var(--text); }
+.role-pill.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+.custom-role-input { margin-top: 8px; display: none; }
+.custom-role-input.show { display: block; }
+
+.add-agent-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.add-agent-btn:hover { border-color: rgba(124,58,237,0.4); color: var(--text); background: rgba(124,58,237,0.05); }
+
+.rounds-section { margin: 24px 0; }
+.rounds-pills { display: flex; gap: 8px; margin-top: 8px; }
+.round-pill {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 20px;
+  background: var(--surface);
+  color: var(--muted);
+  transition: all var(--transition);
+}
+.round-pill.active { border-color: var(--purple); color: var(--purple); background: rgba(124,58,237,0.1); }
+.round-pill:hover:not(.active) { border-color: rgba(124,58,237,0.3); }
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  border-radius: var(--radius);
+  margin-top: 8px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCREEN 3 — BATTLE
+══════════════════════════════════════════════════════════════════════ */
+#screen-battle {
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Top bar */
+.battle-topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative; z-index: 10;
+}
+.topbar-logo {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #c4b5fd, var(--purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.topbar-topic {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.round-indicator {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border: 1px solid rgba(124,58,237,0.4);
+  border-radius: 3px;
+  color: #c4b5fd;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Agent portraits */
+.portraits-bar {
+  display: flex; gap: 12px;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.portraits-bar::-webkit-scrollbar { height: 3px; }
+
+.portrait-card {
+  flex: 1; min-width: 130px; max-width: 180px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 12px;
+  text-align: center;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.portrait-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--provider-color, var(--purple));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.portrait-card.active::before { opacity: 1; }
+.portrait-card.active {
+  border-color: var(--provider-color, var(--purple));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--provider-color, var(--purple)) 30%, transparent);
+}
+.portrait-card.winner {
+  border-color: var(--gold);
+  box-shadow: 0 0 30px rgba(245,197,24,0.3);
+  animation: winner-pulse 2s ease infinite;
+}
+
+@keyframes winner-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(245,197,24,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(245,197,24,0.6); }
+}
+
+.portrait-crown {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 20px;
+  animation: crown-drop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  display: none;
+}
+.portrait-card.winner .portrait-crown { display: block; }
+
+@keyframes crown-drop {
+  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);     opacity: 1; }
+}
+
+.portrait-avatar {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 22px;
+  margin: 0 auto 8px;
+  background: var(--provider-color, var(--purple));
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.portrait-name {
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.portrait-badge {
+  font-family: var(--font-head);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--provider-color, var(--purple));
+  border: 1px solid color-mix(in srgb, var(--provider-color, var(--purple)) 40%, transparent);
+  background: color-mix(in srgb, var(--provider-color, var(--purple)) 10%, transparent);
+}
+
+.strength-label {
+  font-size: 9px;
+  color: var(--muted);
+  text-align: left;
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.strength-bar-bg {
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.strength-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--provider-color, var(--purple));
+  width: 0%;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 6px var(--provider-color, var(--purple));
+}
+.strength-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--provider-color, var(--muted));
+  text-align: right;
+  height: 12px;
+}
+.portrait-status {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+  min-height: 14px;
+  font-family: var(--font-mono);
+}
+.portrait-card.active .portrait-status { color: var(--provider-color, var(--purple)); }
+
+/* Typing dots */
+.typing-dots span {
+  display: inline-block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  margin: 0 1px;
+  animation: tdot 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* Battle log */
+.battle-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Round banner */
+.round-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.08));
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+  position: relative;
+  overflow: hidden;
+}
+.round-banner::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--purple), var(--purple-2));
+}
+
+/* Memory reset banner */
+.memory-reset-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: rgba(168,85,247,0.08);
+  border: 1px solid rgba(168,85,247,0.2);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #c084fc;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  animation: fade-in 0.4s ease;
+}
+.memory-reset-banner::before { content: '❄️'; }
+
+/* Agent message bubble */
+.agent-message {
+  display: flex; gap: 10px;
+  animation: slide-up 0.3s ease;
+}
+.agent-message.judge-msg { flex-direction: column; }
+
+@keyframes slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.msg-body { flex: 1; min-width: 0; }
+.msg-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.msg-name {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 14px;
+}
+.msg-badge {
+  font-family: var(--font-head);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 1px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 4px 12px 12px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--agent-color, var(--border));
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* Judge card */
+.judge-card {
+  background: var(--surface-2);
+  border: 1px solid rgba(245,197,24,0.3);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: slide-up 0.4s ease;
+}
+.judge-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(245,197,24,0.1), rgba(245,197,24,0.05));
+  border-bottom: 1px solid rgba(245,197,24,0.2);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.judge-body { padding: 14px 16px; font-size: 14px; line-height: 1.7; }
+
+/* Typing in log */
+.typing-in-log {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* Bottom bar */
+.battle-bottombar {
+  padding: 14px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.status-text {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.battle-actions { display: flex; gap: 8px; }
+
+/* Completion overlay */
+.completion-banner {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(245,197,24,0.15), rgba(124,58,237,0.15));
+  border-bottom: 1px solid rgba(245,197,24,0.3);
+  text-align: center;
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  z-index: 100;
+  transform: translateY(-100%);
+  transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.completion-banner.show { transform: translateY(0); }
+
+/* Confetti */
+.confetti-container {
+  position: fixed; inset: 0; pointer-events: none; z-index: 99;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px; height: 8px;
+  top: -10px;
+  animation: confetti-fall linear infinite;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Error toast */
+.error-toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 12px 18px;
+  background: #1a0a0a;
+  border: 1px solid rgba(239,68,68,0.4);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: #fca5a5;
+  max-width: 380px;
+  z-index: 200;
+  animation: slide-up 0.3s ease;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .s1-header, .s1-body { padding: 24px 20px; }
+  .s1-footer { padding: 0 20px 24px; }
+  .agent-fields { grid-template-columns: 1fr; }
+  .portraits-bar { flex-wrap: wrap; }
+  .portrait-card { min-width: 140px; }
+  .battle-topbar { padding: 10px 14px; }
+  .battle-log { padding: 14px; }
+}
+</style>
 </head>
 <body>
-  <main>
-    <section class="screen settings-screen active" id="settingsScreen">
-      <div class="panel">
-        <h1 class="brand">ThinkTank</h1>
-        <p class="subtitle">Configure your AI combatants</p>
+<div class="grid-bg"></div>
 
-        <div id="providerRows"></div>
-
-        <div class="actions">
-          <button class="btn" id="validateBtn" type="button">Validate Keys</button>
-          <button class="btn primary" id="continueBtn" type="button" disabled>Continue →</button>
-        </div>
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 1 — PROVIDER SETUP
+══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-providers" class="screen active">
+  <div class="s1-panel">
+    <div class="s1-header">
+      <div class="logo">ThinkTank</div>
+      <div class="logo-sub">Multi-model AI council · Cold Start Debate Protocol</div>
+      <div class="cold-start-badge">COLD START: Agent memory resets each round — no echo chambers</div>
+    </div>
+    <div class="s1-body">
+      <div id="provider-sections"></div>
+      <div class="s1-explainer">
+        Each debater uses a real AI model with your API key. Between rounds, agent memory is fully erased — they see only what <em>others</em> said, never their own prior arguments. This produces genuine independent reasoning, not position defense.
       </div>
-    </section>
+    </div>
+    <div class="s1-footer">
+      <button class="btn btn-primary" id="to-setup-btn" onclick="goToSetup()" disabled style="width:100%;">
+        Build Council →
+      </button>
+    </div>
+  </div>
+</div>
 
-    <section class="screen setup-screen" id="setupScreen">
-      <div class="panel setup-panel">
-        <div class="setup-head">
-          <div>
-            <h1>Build Your Roster</h1>
-            <p>Choose fighters and set the battlefield</p>
-          </div>
-          <button class="mini-link" id="backToSettingsBtn" type="button">Settings</button>
-        </div>
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 2 — COUNCIL SETUP
+══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-setup" class="screen">
+  <div class="s2-panel">
+    <a class="setup-back" onclick="showScreen('providers')">← Back to providers</a>
+    <div class="s2-header">
+      <div class="s2-title">Build Your Council</div>
+      <div class="s2-sub">Configure agents and choose the battlefield</div>
+    </div>
 
-        <label class="field-label" for="topicInput">Battlefield Topic</label>
-        <input class="input topic-input" id="topicInput" type="text" placeholder="What's the debate topic? Anything goes...">
+    <div class="topic-section">
+      <label>Debate Topic</label>
+      <input type="text" id="topic-input" class="topic-input"
+             placeholder="e.g. Will AI replace programmers? Should cities ban cars? Is social media harmful?"
+             maxlength="500">
+    </div>
 
-        <div class="section-head">
-          <h2>Fighters</h2>
-          <button class="btn" id="addFighterBtn" type="button">+ Add Fighter</button>
-        </div>
-        <div class="agents-grid" id="agentsGrid"></div>
-
-        <div class="round-row">
-          <div>
-            <span class="field-label">Rounds</span>
-            <div class="round-pills" id="roundPills">
-              <button class="round-pill" type="button" data-rounds="1">1</button>
-              <button class="round-pill active" type="button" data-rounds="2">2</button>
-              <button class="round-pill" type="button" data-rounds="3">3</button>
-            </div>
-          </div>
-          <button class="start-battle" id="startBattleBtn" type="button">START BATTLE 🔥</button>
-        </div>
+    <div class="agents-section">
+      <div class="section-label">
+        <span>Council Members</span>
+        <span id="agent-count-label" style="font-size:12px; color:var(--muted); font-weight:400;"></span>
       </div>
-    </section>
+      <div class="agents-list" id="agents-list"></div>
+      <button class="add-agent-btn" id="add-agent-btn" onclick="addAgent()">+ Add Member (max 5)</button>
+    </div>
 
-    <section class="screen battle-screen" id="battleScreen">
-      <header class="battle-topbar">
-        <div class="top-logo">
-          <span>ThinkTank</span>
-          <span class="topic-line" id="battleTopic"></span>
-        </div>
-        <div class="battle-meta">
-          <span class="meta-pill" id="roundIndicator">ROUND 1 OF 2</span>
-          <span class="round-label-pill" id="roundLabel">Opening Strikes</span>
-        </div>
-      </header>
-
-      <div class="battle-main">
-        <section class="portrait-panel" id="portraitPanel" aria-label="Agent battle cards"></section>
-        <section class="battle-log-wrap">
-          <div class="complete-banner" id="completeBanner">
-            <span class="battle-title">BATTLE COMPLETE</span>
-            <button class="btn primary" id="fightAgainBtn" type="button">⚔️ Fight Again</button>
-          </div>
-          <div class="battle-log" id="battleLog"></div>
-        </section>
+    <div class="rounds-section">
+      <label>Rounds</label>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Each additional round = new Cold Start cycle</div>
+      <div class="rounds-pills" id="rounds-pills">
+        <div class="round-pill" onclick="setRounds(1)">1</div>
+        <div class="round-pill active" onclick="setRounds(2)">2</div>
+        <div class="round-pill" onclick="setRounds(3)">3</div>
       </div>
-    </section>
-  </main>
+    </div>
 
-  <div class="toast" id="toast"></div>
-  <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <button class="btn btn-primary start-btn" id="start-btn" onclick="startDebate()">
+      ⚔️ START BATTLE
+    </button>
+  </div>
+</div>
 
-  <script>
-    const PROVIDERS = {
-      openai: { label: "OpenAI GPT-4o", short: "OpenAI", color: "#10b981", placeholder: "sk-..." },
-      gemini: { label: "Google Gemini", short: "Gemini", color: "#4285f4", placeholder: "AIza..." },
-      claude: { label: "Anthropic Claude", short: "Claude", color: "#d97757", placeholder: "sk-ant-..." },
-      grok: { label: "xAI Grok", short: "Grok", color: "#e5e7eb", placeholder: "xai-..." }
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 3 — BATTLE
+══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-battle" class="screen">
+  <div class="battle-topbar">
+    <div class="topbar-logo">ThinkTank</div>
+    <div class="topbar-topic" id="battle-topic-display"></div>
+    <div class="round-indicator" id="round-indicator">ROUND — / —</div>
+  </div>
+
+  <div class="portraits-bar" id="portraits-bar"></div>
+
+  <div class="battle-log" id="battle-log"></div>
+
+  <div class="battle-bottombar">
+    <div class="status-text" id="battle-status">Initializing...</div>
+    <div class="battle-actions">
+      <button class="btn" onclick="goToSetup()">⚔️ Fight Again</button>
+      <button class="btn" onclick="showScreen('providers')">⚙ Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- Completion banner -->
+<div class="completion-banner" id="completion-banner">⚔️ BATTLE COMPLETE — VERDICT REACHED</div>
+<div class="confetti-container" id="confetti-container"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const API = '';  // same origin
+let providers = {};
+let providerKeys = {};  // provider -> { api_key, model }
+let providerValid = {}; // provider -> bool
+let agents = [];
+let selectedRounds = 2;
+let agentIdCounter = 0;
+
+const ROLES = ['Optimist', 'Skeptic', "Devil's Advocate", 'Neutral', 'Custom'];
+const DEFAULT_ROLES = ['Optimist', 'Skeptic', "Devil's Advocate", 'Neutral', 'Custom'];
+const DEFAULT_NAMES = ['Nova', 'Rex', 'Aria', 'Volt', 'Echo'];
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch(`${API}/providers`);
+    providers = await res.json();
+    renderProviderSections();
+    // Default agents
+    addAgent();
+    addAgent();
+  } catch (e) {
+    console.error('Failed to load providers', e);
+    // Fallback providers
+    providers = {
+      openai:  { name: 'OpenAI',  models: ['gpt-4o', 'gpt-4o-mini'],              color: '#10b981', badge: 'GPT' },
+      claude:  { name: 'Claude',  models: ['claude-opus-4-5', 'claude-haiku-4-5'], color: '#d97757', badge: 'CLAUDE' },
+      gemini:  { name: 'Gemini',  models: ['gemini-2.0-flash', 'gemini-1.5-flash'],color: '#4285f4', badge: 'GEMINI' },
+      grok:    { name: 'Grok',    models: ['grok-3', 'grok-3-mini'],               color: '#c4c4d4', badge: 'GROK' },
     };
+    renderProviderSections();
+    addAgent();
+    addAgent();
+  }
+}
 
-    const API_BASES = [
-      window.location.protocol.startsWith("http") ? window.location.origin : null,
-      "http://127.0.0.1:8010",
-      "http://localhost:8010"
-    ].filter(Boolean);
+// ─── Screen Management ────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${id}`).classList.add('active');
+}
 
-    const state = {
-      providerKeys: { openai: "", gemini: "", claude: "", grok: "" },
-      keyStatus: { openai: "unset", gemini: "unset", claude: "unset", grok: "unset" },
-      agents: [],
-      rounds: 2,
-      activeBubble: null,
-      typingRow: null,
-      scores: {},
-      scoreTotals: {},
-      round: 1
+// ─── Provider Setup (Screen 1) ────────────────────────────────────────────────
+function renderProviderSections() {
+  const container = document.getElementById('provider-sections');
+  container.innerHTML = '';
+  for (const [id, p] of Object.entries(providers)) {
+    providerKeys[id] = { api_key: '', model: p.models[0] };
+    const section = document.createElement('div');
+    section.className = 'provider-section';
+    section.id = `provider-section-${id}`;
+    section.innerHTML = `
+      <div class="provider-header">
+        <div class="provider-name" style="color:${p.color}">${p.name}</div>
+        <div class="provider-models">${p.models.join(' · ')}</div>
+        <span class="provider-dot" id="dot-${id}"></span>
+      </div>
+      <div class="key-row">
+        <div class="key-wrap">
+          <input type="password" id="key-${id}" placeholder="API key..." autocomplete="off"
+                 oninput="onKeyInput('${id}')">
+          <button class="eye-btn" onclick="toggleEye('${id}')" tabindex="-1">👁</button>
+        </div>
+        <button class="btn test-btn" onclick="testProvider('${id}')">Test</button>
+      </div>
+      <div class="model-select-row">
+        <select id="model-${id}" onchange="providerKeys['${id}'].model = this.value">
+          ${p.models.map(m => `<option value="${m}">${m}</option>`).join('')}
+        </select>
+      </div>
+    `;
+    container.appendChild(section);
+  }
+}
+
+function onKeyInput(id) {
+  const key = document.getElementById(`key-${id}`).value.trim();
+  providerKeys[id].api_key = key;
+  providerValid[id] = false;
+  setDot(id, 'none');
+  updateSetupBtn();
+}
+
+function toggleEye(id) {
+  const inp = document.getElementById(`key-${id}`);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function setDot(id, state) {
+  const dot = document.getElementById(`dot-${id}`);
+  if (!dot) return;
+  dot.className = 'provider-dot';
+  if (state === 'valid') dot.classList.add('valid');
+  if (state === 'invalid') dot.classList.add('invalid');
+}
+
+async function testProvider(id) {
+  const key = document.getElementById(`key-${id}`).value.trim();
+  const model = document.getElementById(`model-${id}`).value;
+  if (!key) return;
+  setDot(id, 'none');
+  try {
+    const res = await fetch(`${API}/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: id, model, api_key: key }),
+    });
+    const data = await res.json();
+    providerValid[id] = data.valid;
+    providerKeys[id] = { api_key: key, model };
+    setDot(id, data.valid ? 'valid' : 'invalid');
+    if (!data.valid && data.error) showError(data.error);
+  } catch (e) {
+    setDot(id, 'invalid');
+    showError(String(e));
+  }
+  updateSetupBtn();
+}
+
+function updateSetupBtn() {
+  const configured = Object.entries(providerKeys).filter(([id, v]) => v.api_key).length;
+  document.getElementById('to-setup-btn').disabled = configured < 2;
+}
+
+function goToSetup() {
+  // Sync models
+  for (const id of Object.keys(providers)) {
+    const el = document.getElementById(`model-${id}`);
+    if (el) providerKeys[id].model = el.value;
+  }
+  renderAgents();
+  showScreen('setup');
+}
+
+// ─── Council Setup (Screen 2) ─────────────────────────────────────────────────
+function getConfiguredProviders() {
+  return Object.entries(providerKeys)
+    .filter(([id, v]) => v.api_key)
+    .map(([id, v]) => ({ id, ...providers[id], ...v }));
+}
+
+function addAgent() {
+  if (agents.length >= 5) return;
+  const id = ++agentIdCounter;
+  const idx = agents.length;
+  const configured = getConfiguredProviders();
+  const provId = configured[idx % Math.max(configured.length, 1)]?.id || (configured[0]?.id) || Object.keys(providers)[0];
+  agents.push({
+    id,
+    name: DEFAULT_NAMES[idx] || `Agent${id}`,
+    role: DEFAULT_ROLES[idx] || 'Neutral',
+    customRole: '',
+    provider: provId,
+  });
+  renderAgents();
+}
+
+function removeAgent(id) {
+  if (agents.length <= 2) return;
+  agents = agents.filter(a => a.id !== id);
+  renderAgents();
+}
+
+function renderAgents() {
+  const list = document.getElementById('agents-list');
+  const configured = getConfiguredProviders();
+  list.innerHTML = '';
+
+  for (const agent of agents) {
+    const prov = providers[agent.provider] || configured[0] || {};
+    const color = prov.color || '#7c3aed';
+    const card = document.createElement('div');
+    card.className = 'agent-card';
+    card.id = `agent-card-${agent.id}`;
+
+    const provOptions = configured.map(p =>
+      `<option value="${p.id}" ${p.id === agent.provider ? 'selected' : ''}>${p.name} — ${p.model}</option>`
+    ).join('');
+
+    const rolePills = ROLES.map(r =>
+      `<div class="role-pill${agent.role === r ? ' active' : ''}"
+            onclick="setAgentRole(${agent.id}, '${r}')">${r}</div>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="agent-card-header">
+        <div class="agent-avatar-sm" style="background:${color};color:#fff">${agent.name[0]?.toUpperCase()}</div>
+        <div class="agent-card-title">Member ${agents.indexOf(agent) + 1}</div>
+        <button class="remove-agent" onclick="removeAgent(${agent.id})" title="Remove">×</button>
+      </div>
+      <div class="agent-fields">
+        <div>
+          <label>Name</label>
+          <input type="text" value="${agent.name}" maxlength="40"
+                 oninput="updateAgent(${agent.id}, 'name', this.value)">
+        </div>
+        <div>
+          <label>Provider</label>
+          <select onchange="updateAgent(${agent.id}, 'provider', this.value)">
+            ${provOptions || '<option>No keys configured</option>'}
+          </select>
+        </div>
+        <div class="full">
+          <label>Role</label>
+          <div class="role-pills">${rolePills}</div>
+          <div class="custom-role-input${agent.role === 'Custom' ? ' show' : ''}" id="custom-role-${agent.id}">
+            <input type="text" placeholder="e.g. Philosopher, Engineer, Parent, Historian..."
+                   value="${agent.customRole}"
+                   oninput="updateAgent(${agent.id}, 'customRole', this.value)">
+          </div>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  }
+
+  document.getElementById('agent-count-label').textContent = `${agents.length} / 5`;
+  document.getElementById('add-agent-btn').disabled = agents.length >= 5;
+  document.getElementById('start-btn').disabled = !document.getElementById('topic-input')?.value?.trim() || agents.length < 2;
+
+  // Re-attach topic listener
+  const topicEl = document.getElementById('topic-input');
+  if (topicEl) {
+    topicEl.oninput = () => {
+      document.getElementById('start-btn').disabled = !topicEl.value.trim() || agents.length < 2;
     };
+  }
+}
 
-    const settingsScreen = document.getElementById("settingsScreen");
-    const setupScreen = document.getElementById("setupScreen");
-    const battleScreen = document.getElementById("battleScreen");
-    const providerRows = document.getElementById("providerRows");
-    const validateBtn = document.getElementById("validateBtn");
-    const continueBtn = document.getElementById("continueBtn");
-    const backToSettingsBtn = document.getElementById("backToSettingsBtn");
-    const topicInput = document.getElementById("topicInput");
-    const agentsGrid = document.getElementById("agentsGrid");
-    const addFighterBtn = document.getElementById("addFighterBtn");
-    const roundPills = document.getElementById("roundPills");
-    const startBattleBtn = document.getElementById("startBattleBtn");
-    const battleTopic = document.getElementById("battleTopic");
-    const roundIndicator = document.getElementById("roundIndicator");
-    const roundLabel = document.getElementById("roundLabel");
-    const portraitPanel = document.getElementById("portraitPanel");
-    const battleLog = document.getElementById("battleLog");
-    const completeBanner = document.getElementById("completeBanner");
-    const fightAgainBtn = document.getElementById("fightAgainBtn");
-    const toast = document.getElementById("toast");
-    const confetti = document.getElementById("confetti");
-
-    function showScreen(screen) {
-      [settingsScreen, setupScreen, battleScreen].forEach((item) => item.classList.remove("active"));
-      screen.classList.add("active");
+function updateAgent(id, field, value) {
+  const agent = agents.find(a => a.id === id);
+  if (!agent) return;
+  agent[field] = value;
+  if (field === 'name') {
+    const card = document.getElementById(`agent-card-${id}`);
+    if (card) {
+      const av = card.querySelector('.agent-avatar-sm');
+      if (av) av.textContent = value[0]?.toUpperCase() || '?';
     }
+  }
+}
 
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, (char) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      }[char]));
-    }
+function setAgentRole(id, role) {
+  const agent = agents.find(a => a.id === id);
+  if (!agent) return;
+  agent.role = role;
+  const card = document.getElementById(`agent-card-${id}`);
+  if (!card) return;
+  card.querySelectorAll('.role-pill').forEach(p => p.classList.toggle('active', p.textContent === role));
+  const customDiv = document.getElementById(`custom-role-${id}`);
+  if (customDiv) customDiv.classList.toggle('show', role === 'Custom');
+}
 
-    function showToast(message) {
-      toast.textContent = message;
-      toast.style.display = "block";
-      window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => {
-        toast.style.display = "none";
-      }, 4600);
-    }
+function setRounds(n) {
+  selectedRounds = n;
+  document.querySelectorAll('.round-pill').forEach((p, i) => {
+    p.classList.toggle('active', i + 1 === n);
+  });
+}
 
-    function providerColor(provider) {
-      return PROVIDERS[provider]?.color || "#7c3aed";
-    }
+// ─── Battle (Screen 3) ────────────────────────────────────────────────────────
+let activeAgentEl = null;
+let activeLogBubble = null;
+let judgeBodyEl = null;
 
-    function textColorFor(provider) {
-      return provider === "grok" ? "#080810" : "#05050b";
-    }
+async function startDebate() {
+  const topic = document.getElementById('topic-input').value.trim();
+  if (!topic || agents.length < 2) return;
 
-    function rgbaFromHex(hex, alpha) {
-      const clean = hex.replace("#", "");
-      const value = parseInt(clean, 16);
-      const r = (value >> 16) & 255;
-      const g = (value >> 8) & 255;
-      const b = value & 255;
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
+  // Build payload
+  const payload = {
+    topic,
+    rounds: selectedRounds,
+    agents: agents.map(a => ({
+      name: a.name,
+      role: a.role === 'Custom' ? (a.customRole || 'Custom') : a.role,
+      provider_config: {
+        provider: a.provider,
+        model: providerKeys[a.provider]?.model || providers[a.provider]?.models[0],
+        api_key: providerKeys[a.provider]?.api_key || '',
+      },
+    })),
+  };
 
-    function initial(name) {
-      return (name.trim()[0] || "?").toUpperCase();
-    }
+  // Setup battle screen
+  document.getElementById('battle-topic-display').textContent = topic;
+  document.getElementById('round-indicator').textContent = `ROUND — / ${selectedRounds}`;
+  document.getElementById('battle-log').innerHTML = '';
+  document.getElementById('battle-status').textContent = 'Connecting...';
+  document.getElementById('completion-banner').classList.remove('show');
+  document.getElementById('confetti-container').innerHTML = '';
+  buildPortraits();
+  showScreen('battle');
 
-    function configuredProviders() {
-      return Object.keys(PROVIDERS).filter((provider) => state.providerKeys[provider].trim());
-    }
-
-    function renderProviderRows() {
-      providerRows.innerHTML = "";
-      Object.entries(PROVIDERS).forEach(([provider, info]) => {
-        const row = document.createElement("div");
-        row.className = "provider-row";
-        row.innerHTML = `
-          <div class="provider-title" style="color:${info.color}">
-            <span>${escapeHtml(info.label)}</span>
-          </div>
-          <span class="key-dot ${state.keyStatus[provider] === "valid" ? "valid" : state.keyStatus[provider] === "invalid" ? "invalid" : ""}" id="dot-${provider}"></span>
-          <div class="key-wrap">
-            <input class="input key-input" id="key-${provider}" type="password" autocomplete="off" spellcheck="false" placeholder="${info.placeholder}" value="${escapeHtml(state.providerKeys[provider])}">
-            <button class="icon-btn show-key" type="button" title="Show or hide key" aria-label="Show or hide ${info.short} key" data-provider="${provider}">👁</button>
-          </div>
-        `;
-
-        const input = row.querySelector("input");
-        input.addEventListener("input", () => {
-          state.providerKeys[provider] = input.value;
-          state.keyStatus[provider] = input.value.trim() ? "unset" : "unset";
-          updateContinueState();
-          updateDots();
-        });
-
-        row.querySelector(".show-key").addEventListener("click", () => {
-          input.type = input.type === "password" ? "text" : "password";
-        });
-
-        providerRows.appendChild(row);
-      });
-      updateContinueState();
-    }
-
-    function updateDots() {
-      Object.keys(PROVIDERS).forEach((provider) => {
-        const dot = document.getElementById(`dot-${provider}`);
-        if (!dot) return;
-        dot.className = "key-dot";
-        if (state.keyStatus[provider] === "valid") dot.classList.add("valid");
-        if (state.keyStatus[provider] === "invalid") dot.classList.add("invalid");
-      });
-    }
-
-    function updateContinueState() {
-      continueBtn.disabled = configuredProviders().length < 2;
-    }
-
-    async function apiFetch(path, options = {}) {
-      let lastError;
-      for (const base of API_BASES) {
-        try {
-          const response = await fetch(`${base}${path}`, options);
-          if (response.ok || response.body) return response;
-          lastError = new Error(`Backend returned ${response.status}`);
-        } catch (error) {
-          lastError = error;
-        }
-      }
-      throw lastError || new Error("Could not reach the backend.");
-    }
-
-    async function validateKeys() {
-      validateBtn.disabled = true;
-      validateBtn.textContent = "Validating...";
-      try {
-        const response = await apiFetch("/validate-keys", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(state.providerKeys)
-        });
-        const result = await response.json();
-        Object.keys(PROVIDERS).forEach((provider) => {
-          state.keyStatus[provider] = state.providerKeys[provider].trim()
-            ? (result[provider] ? "valid" : "invalid")
-            : "unset";
-        });
-        updateDots();
-      } catch (error) {
-        showToast(error.message || "Key validation failed.");
-      } finally {
-        validateBtn.disabled = false;
-        validateBtn.textContent = "Validate Keys";
-      }
-    }
-
-    function buildDefaultAgents() {
-      const providers = configuredProviders();
-      const novaProvider = providers.includes("openai") ? "openai" : providers[0];
-      const rexProvider = providers.includes("grok") && providers.includes(novaProvider) && novaProvider !== "grok"
-        ? "grok"
-        : providers.find((provider) => provider !== novaProvider) || providers[1];
-      state.agents = [
-        {
-          name: "Nova",
-          personality: "Optimistic futurist who believes AI will solve all problems",
-          provider: novaProvider,
-          color: providerColor(novaProvider)
-        },
-        {
-          name: "Rex",
-          personality: "Cynical realist who distrusts hype and questions every assumption",
-          provider: rexProvider,
-          color: providerColor(rexProvider)
-        }
-      ];
-    }
-
-    function continueToSetup() {
-      if (configuredProviders().length < 2) return;
-      buildDefaultAgents();
-      renderAgents();
-      showScreen(setupScreen);
-    }
-
-    function providerOptions(selected) {
-      return configuredProviders().map((provider) => {
-        const optionSelected = provider === selected ? "selected" : "";
-        return `<option value="${provider}" ${optionSelected}>${PROVIDERS[provider].label}</option>`;
-      }).join("");
-    }
-
-    function syncAgentColors() {
-      state.agents.forEach((agent) => {
-        agent.color = providerColor(agent.provider);
-      });
-    }
-
-    function renderAgents() {
-      syncAgentColors();
-      agentsGrid.innerHTML = "";
-      state.agents.forEach((agent, index) => {
-        const card = document.createElement("article");
-        card.className = "setup-agent-card";
-        card.innerHTML = `
-          <div class="setup-avatar" style="background:${agent.color}; color:${textColorFor(agent.provider)}">${initial(agent.name)}</div>
-          <div class="agent-fields">
-            <input class="input" type="text" value="${escapeHtml(agent.name)}" placeholder="Name" aria-label="Agent name">
-            <textarea class="textarea" placeholder="Personality" aria-label="Agent personality">${escapeHtml(agent.personality)}</textarea>
-            <select class="select" aria-label="LLM provider">${providerOptions(agent.provider)}</select>
-          </div>
-          <button class="icon-btn remove-btn" type="button" title="Remove fighter" aria-label="Remove fighter">×</button>
-        `;
-
-        const avatar = card.querySelector(".setup-avatar");
-        const nameInput = card.querySelector("input");
-        const personalityInput = card.querySelector("textarea");
-        const select = card.querySelector("select");
-        const removeButton = card.querySelector(".remove-btn");
-
-        nameInput.addEventListener("input", () => {
-          agent.name = nameInput.value;
-          avatar.textContent = initial(agent.name);
-        });
-        personalityInput.addEventListener("input", () => {
-          agent.personality = personalityInput.value;
-        });
-        select.addEventListener("change", () => {
-          agent.provider = select.value;
-          agent.color = providerColor(agent.provider);
-          renderAgents();
-        });
-        removeButton.addEventListener("click", () => {
-          if (state.agents.length <= 2) {
-            showToast("Keep at least two fighters in the arena.");
-            return;
-          }
-          state.agents.splice(index, 1);
-          renderAgents();
-        });
-
-        agentsGrid.appendChild(card);
-      });
-      addFighterBtn.disabled = state.agents.length >= 5;
-      addFighterBtn.textContent = state.agents.length >= 5 ? "Max 5 Fighters" : "+ Add Fighter";
-    }
-
-    function addFighter() {
-      if (state.agents.length >= 5) return;
-      const providers = configuredProviders();
-      const provider = providers[state.agents.length % providers.length];
-      state.agents.push({
-        name: `Fighter ${state.agents.length + 1}`,
-        personality: "Sharp, concise challenger who hunts for weak assumptions",
-        provider,
-        color: providerColor(provider)
-      });
-      renderAgents();
-    }
-
-    function validateBattleForm() {
-      const topic = topicInput.value.trim();
-      if (!topic) {
-        showToast("Choose a topic before the fight starts.");
-        topicInput.focus();
-        return null;
-      }
-
-      const agents = state.agents.map((agent) => ({
-        name: agent.name.trim(),
-        personality: agent.personality.trim(),
-        provider: agent.provider,
-        color: providerColor(agent.provider)
-      }));
-
-      if (agents.some((agent) => !agent.name || !agent.personality)) {
-        showToast("Every fighter needs a name and personality.");
-        return null;
-      }
-
-      if (new Set(agents.map((agent) => agent.name.toLowerCase())).size !== agents.length) {
-        showToast("Fighter names must be unique.");
-        return null;
-      }
-
-      if (agents.some((agent) => !state.providerKeys[agent.provider].trim())) {
-        showToast("Every selected provider needs a configured key.");
-        return null;
-      }
-
-      return {
-        topic,
-        agents,
-        rounds: state.rounds,
-        provider_keys: state.providerKeys
-      };
-    }
-
-    function renderPortraits(agents) {
-      portraitPanel.innerHTML = "";
-      agents.forEach((agent) => {
-        const color = providerColor(agent.provider);
-        const card = document.createElement("article");
-        card.className = "portrait-card";
-        card.dataset.agent = agent.name;
-        card.style.setProperty("--agent-color", color);
-        card.style.setProperty("--agent-glow", rgbaFromHex(color, 0.5));
-        card.style.setProperty("--avatar-text", textColorFor(agent.provider));
-        card.innerHTML = `
-          <div class="winner-crown">👑</div>
-          <div class="battle-avatar">${initial(agent.name)}</div>
-          <div class="rpg-name">${escapeHtml(agent.name)}</div>
-          <div class="provider-badge">${escapeHtml(PROVIDERS[agent.provider].short)}</div>
-          <div class="strength-block">
-            <div class="stat-head">
-              <span class="stat-label">ARG STRENGTH</span>
-              <span class="score-value">0/100</span>
-            </div>
-            <div class="strength-track"><div class="strength-fill"></div></div>
-          </div>
-          <div class="status-text">Listening</div>
-        `;
-        portraitPanel.appendChild(card);
-      });
-    }
-
-    function setActiveAgent(agentName) {
-      portraitPanel.querySelectorAll(".portrait-card").forEach((card) => {
-        const active = card.dataset.agent === agentName;
-        card.classList.toggle("active", active);
-        const status = card.querySelector(".status-text");
-        status.textContent = active ? "Preparing argument..." : "Listening";
-      });
-    }
-
-    function setAgentSpeaking(agentName) {
-      const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(agentName)}"]`);
-      if (!card) return;
-      card.querySelector(".status-text").textContent = "Speaking...";
-    }
-
-    function updateScore(agentName, score) {
-      state.scores[agentName] = score;
-      if (!state.scoreTotals[agentName]) state.scoreTotals[agentName] = { total: 0, count: 0 };
-      state.scoreTotals[agentName].total += score;
-      state.scoreTotals[agentName].count += 1;
-      const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(agentName)}"]`);
-      if (!card) return;
-      card.querySelector(".strength-fill").style.width = `${score}%`;
-      card.querySelector(".score-value").textContent = `${score}/100`;
-      card.querySelector(".status-text").textContent = "Scored";
-    }
-
-    function scrollLog() {
-      battleLog.scrollTop = battleLog.scrollHeight;
-    }
-
-    function addRoundBanner(round, label) {
-      const banner = document.createElement("div");
-      banner.className = "round-banner";
-      banner.textContent = `⚔️ ROUND ${round} — ${label}`;
-      battleLog.appendChild(banner);
-      roundIndicator.textContent = `ROUND ${round} OF ${state.rounds}`;
-      roundLabel.textContent = label;
-      state.round = round;
-      state.activeBubble = null;
-      scrollLog();
-    }
-
-    function removeTyping() {
-      if (state.typingRow) {
-        state.typingRow.remove();
-        state.typingRow = null;
-      }
-    }
-
-    function showTyping(agentName, role = "debater") {
-      removeTyping();
-      const agent = state.agents.find((item) => item.name === agentName);
-      const provider = agent?.provider || "openai";
-      const color = role === "judge" ? "#facc15" : providerColor(provider);
-      const row = document.createElement("div");
-      row.className = "message-row typing-row";
-      row.style.setProperty("--agent-color", color);
-      row.style.setProperty("--avatar-text", role === "judge" ? "#221a00" : textColorFor(provider));
-      row.innerHTML = `
-        <div class="chat-avatar">${role === "judge" ? "⚖️" : initial(agentName)}</div>
-        <div class="message-body">
-          <div class="message-head">
-            <span class="message-name">${role === "judge" ? "Judge" : escapeHtml(agentName)}</span>
-            <span class="typing-copy">Preparing argument...</span>
-          </div>
-          <div class="bubble typing-bubble">
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
-          </div>
-        </div>
-      `;
-      battleLog.appendChild(row);
-      state.typingRow = row;
-      scrollLog();
-    }
-
-    function ensureBubble(agentName, role = "debater") {
-      if (state.activeBubble && state.activeBubble.agent === agentName && state.activeBubble.role === role) {
-        return state.activeBubble.textEl;
-      }
-
-      removeTyping();
-      if (role === "judge") {
-        const row = document.createElement("div");
-        row.className = "judge-row";
-        row.innerHTML = `
-          <div class="judge-card">
-            <div class="judge-title">⚖️ FINAL VERDICT</div>
-            <div class="judge-text"></div>
-          </div>
-        `;
-        battleLog.appendChild(row);
-        const textEl = row.querySelector(".judge-text");
-        state.activeBubble = { agent: agentName, role, textEl };
-        scrollLog();
-        return textEl;
-      }
-
-      const agent = state.agents.find((item) => item.name === agentName);
-      const provider = agent?.provider || "openai";
-      const color = providerColor(provider);
-      const row = document.createElement("div");
-      row.className = "message-row";
-      row.style.setProperty("--agent-color", color);
-      row.style.setProperty("--avatar-text", textColorFor(provider));
-      row.innerHTML = `
-        <div class="chat-avatar">${initial(agentName)}</div>
-        <div class="message-body">
-          <div class="message-head">
-            <span class="message-name">${escapeHtml(agentName)}</span>
-            <span class="provider-badge message-badge">${escapeHtml(PROVIDERS[provider].short)}</span>
-          </div>
-          <div class="bubble"></div>
-        </div>
-      `;
-      battleLog.appendChild(row);
-      const textEl = row.querySelector(".bubble");
-      state.activeBubble = { agent: agentName, role, textEl };
-      setAgentSpeaking(agentName);
-      scrollLog();
-      return textEl;
-    }
-
-    function appendMessage(event) {
-      const role = event.role === "judge" ? "judge" : "debater";
-      const textEl = ensureBubble(event.agent, role);
-      textEl.textContent += event.chunk || "";
-      scrollLog();
-    }
-
-    function winnerName() {
-      const entries = Object.entries(state.scoreTotals);
-      if (!entries.length) return null;
-      return entries
-        .map(([agent, value]) => ({ agent, average: value.total / Math.max(1, value.count) }))
-        .sort((a, b) => b.average - a.average)[0].agent;
-    }
-
-    function finishBattle() {
-      removeTyping();
-      state.activeBubble = null;
-      portraitPanel.querySelectorAll(".portrait-card").forEach((card) => {
-        card.classList.remove("active");
-        card.querySelector(".status-text").textContent = "Battle Complete";
-      });
-      const winner = winnerName();
-      if (winner) {
-        const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(winner)}"]`);
-        if (card) {
-          card.classList.add("winner");
-          card.querySelector(".status-text").textContent = "Winner!";
-        }
-      }
-      completeBanner.style.display = "flex";
-      launchConfetti();
-      scrollLog();
-    }
-
-    function launchConfetti() {
-      confetti.innerHTML = "";
-      const colors = ["#7c3aed", "#4f46e5", "#10b981", "#4285f4", "#d97757", "#facc15", "#e5e7eb"];
-      for (let i = 0; i < 76; i += 1) {
-        const piece = document.createElement("i");
-        piece.style.left = `${Math.random() * 100}%`;
-        piece.style.animationDelay = `${Math.random() * 0.45}s`;
-        piece.style.setProperty("--confetti-color", colors[i % colors.length]);
-        piece.style.setProperty("--confetti-rotate", `${Math.random() * 220}deg`);
-        confetti.appendChild(piece);
-      }
-      window.setTimeout(() => {
-        confetti.innerHTML = "";
-      }, 2600);
-    }
-
-    function handleSseEvent(event) {
-      if (event.type === "round_start") {
-        setActiveAgent("");
-        addRoundBanner(event.round, event.label);
-        return;
-      }
-
-      if (event.type === "agent_start") {
-        state.activeBubble = null;
-        setActiveAgent(event.agent);
-        showTyping(event.agent, "debater");
-        return;
-      }
-
-      if (event.type === "message") {
-        appendMessage(event);
-        return;
-      }
-
-      if (event.type === "score") {
-        updateScore(event.agent, Number(event.score || 0));
-        return;
-      }
-
-      if (event.type === "judge_start") {
-        state.activeBubble = null;
-        setActiveAgent("");
-        showTyping("Judge", "judge");
-        return;
-      }
-
-      if (event.type === "done") {
-        finishBattle();
-        return;
-      }
-
-      if (event.type === "error") {
-        throw new Error(event.message || "The debate stream failed.");
-      }
-    }
-
-    async function startBattle() {
-      const payload = validateBattleForm();
-      if (!payload) return;
-
-      state.agents = payload.agents.map((agent) => ({ ...agent }));
-      state.scores = {};
-      state.scoreTotals = {};
-      state.activeBubble = null;
-      state.typingRow = null;
-      battleLog.innerHTML = "";
-      completeBanner.style.display = "none";
-      portraitPanel.innerHTML = "";
-      battleTopic.textContent = payload.topic;
-      roundIndicator.textContent = `ROUND 1 OF ${payload.rounds}`;
-      roundLabel.textContent = "Opening Strikes";
-      renderPortraits(payload.agents);
-      showScreen(battleScreen);
-
-      startBattleBtn.disabled = true;
-      try {
-        const response = await apiFetch("/debate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok || !response.body) {
-          let message = "The debate could not start.";
-          try {
-            const error = await response.json();
-            message = error.detail || message;
-          } catch (_) {}
-          throw new Error(message);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const events = buffer.split("\n\n");
-          buffer = events.pop() || "";
-
-          for (const raw of events) {
-            const line = raw.split("\n").find((item) => item.startsWith("data: "));
-            if (!line) continue;
-            handleSseEvent(JSON.parse(line.slice(6)));
-          }
-        }
-      } catch (error) {
-        showToast(error.message || "The battle failed.");
-        showScreen(setupScreen);
-      } finally {
-        removeTyping();
-        startBattleBtn.disabled = false;
-      }
-    }
-
-    function resetToSetup() {
-      completeBanner.style.display = "none";
-      battleLog.innerHTML = "";
-      portraitPanel.innerHTML = "";
-      state.activeBubble = null;
-      state.typingRow = null;
-      showScreen(setupScreen);
-    }
-
-    validateBtn.addEventListener("click", validateKeys);
-    continueBtn.addEventListener("click", continueToSetup);
-    backToSettingsBtn.addEventListener("click", () => showScreen(settingsScreen));
-    addFighterBtn.addEventListener("click", addFighter);
-    startBattleBtn.addEventListener("click", startBattle);
-    fightAgainBtn.addEventListener("click", resetToSetup);
-
-    roundPills.addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-rounds]");
-      if (!button) return;
-      state.rounds = Number(button.dataset.rounds);
-      roundPills.querySelectorAll(".round-pill").forEach((item) => item.classList.remove("active"));
-      button.classList.add("active");
+  // Stream
+  try {
+    const response = await fetch(`${API}/debate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
-    renderProviderRows();
-  </script>
+    if (!response.ok) {
+      const err = await response.text();
+      showError(err);
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();
+      for (const part of parts) {
+        const line = part.split('\n').find(l => l.startsWith('data: '));
+        if (!line) continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          handleEvent(event);
+        } catch (e) { /* ignore */ }
+      }
+    }
+  } catch (e) {
+    showError(String(e));
+    document.getElementById('battle-status').textContent = 'Connection failed';
+  }
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+    case 'round_start':
+      onRoundStart(ev);
+      break;
+    case 'agent_start':
+      onAgentStart(ev);
+      break;
+    case 'chunk':
+      onChunk(ev);
+      break;
+    case 'agent_done':
+      onAgentDone(ev);
+      break;
+    case 'memory_reset':
+      onMemoryReset(ev);
+      break;
+    case 'judge_start':
+      onJudgeStart();
+      break;
+    case 'done':
+      onDone(ev);
+      break;
+    case 'error':
+      showError(ev.message);
+      break;
+  }
+}
+
+function onRoundStart(ev) {
+  document.getElementById('round-indicator').textContent = `ROUND ${ev.round} / ${ev.total}`;
+  const log = document.getElementById('battle-log');
+  const banner = document.createElement('div');
+  banner.className = 'round-banner';
+  banner.innerHTML = `⚔️ ROUND ${ev.round} — ${ev.label.toUpperCase()}`;
+  log.appendChild(banner);
+  log.scrollTop = log.scrollHeight;
+  document.getElementById('battle-status').textContent = `Round ${ev.round}: ${ev.label}`;
+}
+
+function onAgentStart(ev) {
+  // Activate portrait
+  document.querySelectorAll('.portrait-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById(`portrait-${sanitizeId(ev.agent)}`);
+  if (card) {
+    card.classList.add('active');
+    setPortraitStatus(ev.agent, 'Speaking…');
+  }
+  activeAgentEl = ev.agent;
+  document.getElementById('battle-status').textContent = `${ev.agent} is speaking...`;
+
+  // Create bubble
+  const log = document.getElementById('battle-log');
+  const agentData = agents.find(a => a.name === ev.agent);
+  const provColor = providers[ev.provider]?.color || '#7c3aed';
+  const provBadge = providers[ev.provider]?.badge || ev.provider.toUpperCase();
+
+  const msg = document.createElement('div');
+  msg.className = 'agent-message';
+  msg.id = `msg-${sanitizeId(ev.agent)}-${Date.now()}`;
+  msg.innerHTML = `
+    <div class="msg-avatar" style="background:${provColor}">${ev.agent[0]?.toUpperCase()}</div>
+    <div class="msg-body">
+      <div class="msg-header">
+        <span class="msg-name" style="color:${provColor}">${ev.agent}</span>
+        <span class="msg-badge" style="color:${provColor};border:1px solid color-mix(in srgb,${provColor} 40%,transparent);background:color-mix(in srgb,${provColor} 10%,transparent)">${provBadge}</span>
+      </div>
+      <div class="msg-bubble" style="--agent-color:${provColor}" id="bubble-${msg.id}"></div>
+    </div>
+  `;
+  log.appendChild(msg);
+  activeLogBubble = document.getElementById(`bubble-${msg.id}`);
+  log.scrollTop = log.scrollHeight;
+}
+
+function onChunk(ev) {
+  if (ev.role === 'judge') {
+    if (judgeBodyEl) {
+      judgeBodyEl.textContent += ev.text;
+      document.getElementById('battle-log').scrollTop = document.getElementById('battle-log').scrollHeight;
+    }
+  } else if (activeLogBubble && ev.agent === activeAgentEl) {
+    activeLogBubble.textContent += ev.text;
+    document.getElementById('battle-log').scrollTop = document.getElementById('battle-log').scrollHeight;
+  }
+}
+
+function onAgentDone(ev) {
+  setPortraitStatus(ev.agent, 'Done');
+  const card = document.getElementById(`portrait-${sanitizeId(ev.agent)}`);
+  if (card) card.classList.remove('active');
+  document.getElementById('battle-status').textContent = `${ev.agent} finished speaking`;
+}
+
+function onMemoryReset(ev) {
+  const log = document.getElementById('battle-log');
+  const banner = document.createElement('div');
+  banner.className = 'memory-reset-banner';
+  banner.textContent = `COLD START PROTOCOL — Agent memories wiped before Round ${ev.round}. Fresh reasoning incoming.`;
+  log.appendChild(banner);
+  log.scrollTop = log.scrollHeight;
+
+  // Flash all portraits
+  document.querySelectorAll('.portrait-card').forEach(c => {
+    c.style.transition = 'opacity 0.2s';
+    c.style.opacity = '0.3';
+    setTimeout(() => { c.style.opacity = '1'; }, 400);
+    setPortraitStatus(c.dataset.agent, 'Memory wiped');
+  });
+}
+
+function onJudgeStart() {
+  document.getElementById('battle-status').textContent = 'Judge is deliberating...';
+  const log = document.getElementById('battle-log');
+  const card = document.createElement('div');
+  card.className = 'judge-card';
+  card.innerHTML = `
+    <div class="judge-header">⚖️ FINAL VERDICT</div>
+    <div class="judge-body" id="judge-body"></div>
+  `;
+  log.appendChild(card);
+  judgeBodyEl = document.getElementById('judge-body');
+  log.scrollTop = log.scrollHeight;
+  document.getElementById('round-indicator').textContent = 'VERDICT';
+}
+
+function onDone(ev) {
+  document.getElementById('battle-status').textContent = ev.winner
+    ? `Battle complete — Winner: ${ev.winner}`
+    : 'Battle complete';
+
+  // Crown winner
+  if (ev.winner) {
+    const card = document.getElementById(`portrait-${sanitizeId(ev.winner)}`);
+    if (card) card.classList.add('winner');
+  }
+
+  // Banner + confetti
+  document.getElementById('completion-banner').classList.add('show');
+  spawnConfetti();
+}
+
+// ─── Portrait Helpers ──────────────────────────────────────────────────────────
+function buildPortraits() {
+  const bar = document.getElementById('portraits-bar');
+  bar.innerHTML = '';
+  for (const agent of agents) {
+    const prov = providers[agent.provider] || {};
+    const color = prov.color || '#7c3aed';
+    const badge = prov.badge || agent.provider.toUpperCase();
+    const card = document.createElement('div');
+    card.className = 'portrait-card';
+    card.id = `portrait-${sanitizeId(agent.name)}`;
+    card.dataset.agent = agent.name;
+    card.style.setProperty('--provider-color', color);
+    card.innerHTML = `
+      <div class="portrait-crown">👑</div>
+      <div class="portrait-avatar">${agent.name[0]?.toUpperCase()}</div>
+      <div class="portrait-name">${agent.name}</div>
+      <div class="portrait-badge">${badge}</div>
+      <div class="strength-label">ARG STRENGTH</div>
+      <div class="strength-bar-bg"><div class="strength-bar-fill" id="bar-${sanitizeId(agent.name)}"></div></div>
+      <div class="strength-val" id="str-val-${sanitizeId(agent.name)}">—</div>
+      <div class="portrait-status" id="status-${sanitizeId(agent.name)}">Waiting…</div>
+    `;
+    bar.appendChild(card);
+  }
+}
+
+function setPortraitStatus(name, status) {
+  const el = document.getElementById(`status-${sanitizeId(name)}`);
+  if (el) el.textContent = status;
+}
+
+function setStrengthBar(name, score) {
+  const bar = document.getElementById(`bar-${sanitizeId(name)}`);
+  const val = document.getElementById(`str-val-${sanitizeId(name)}`);
+  if (bar) bar.style.width = `${score}%`;
+  if (val) val.textContent = `${score}/100`;
+}
+
+// ─── Confetti ─────────────────────────────────────────────────────────────────
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  const colors = ['#f5c518', '#7c3aed', '#10b981', '#d97757', '#4285f4', '#c084fc'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      width: ${4 + Math.random() * 8}px;
+      height: ${4 + Math.random() * 8}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+      animation-duration: ${2 + Math.random() * 3}s;
+      animation-delay: ${Math.random() * 1.5}s;
+      opacity: ${0.6 + Math.random() * 0.4};
+    `;
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.innerHTML = '', 6000);
+}
+
+// ─── Error Toast ──────────────────────────────────────────────────────────────
+function showError(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = `⚠ ${msg}`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+function sanitizeId(str) {
+  return str.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init();
+</script>
 </body>
 </html>

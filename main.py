@@ -1,577 +1,372 @@
 import asyncio
 import json
 import os
-import re
-from collections.abc import AsyncGenerator
-from pathlib import Path
-from typing import Any
+from typing import AsyncGenerator
 
-import google.generativeai as genai
-from anthropic import APIError as AnthropicAPIError
-from anthropic import APIStatusError as AnthropicAPIStatusError
-from anthropic import AuthenticationError as AnthropicAuthenticationError
-from anthropic import AsyncAnthropic
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from openai import APIError as OpenAIAPIError
-from openai import APIStatusError as OpenAIAPIStatusError
-from openai import AuthenticationError as OpenAIAuthenticationError
-from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
+# ─── Provider Registry ────────────────────────────────────────────────────────
+PROVIDERS = {
+    "openai": {
+        "name": "OpenAI",
+        "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+        "color": "#10b981",
+        "badge": "GPT",
+    },
+    "claude": {
+        "name": "Claude",
+        "models": ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"],
+        "color": "#d97757",
+        "badge": "CLAUDE",
+    },
+    "gemini": {
+        "name": "Gemini",
+        "models": ["gemini-2.0-flash", "gemini-1.5-flash"],
+        "color": "#4285f4",
+        "badge": "GEMINI",
+    },
+    "grok": {
+        "name": "Grok",
+        "models": ["grok-3", "grok-3-mini"],
+        "color": "#e5e7eb",
+        "badge": "GROK",
+    },
+}
 
-BASE_DIR = Path(__file__).resolve().parent
-PROVIDERS = {"openai", "gemini", "claude", "grok"}
-PROVIDER_MODELS = {
-    "openai": "gpt-4o",
-    "gemini": "gemini-2.0-flash",
-    "claude": "claude-opus-4-5",
-    "grok": "grok-3",
-}
-PROVIDER_DISPLAY = {
-    "openai": "OpenAI GPT-4o",
-    "gemini": "Google Gemini 1.5 Pro",
-    "claude": "Anthropic Claude Opus 4.5",
-    "grok": "xAI Grok 3",
-}
 ROUND_LABELS = {
     1: "Opening Strikes",
     2: "Rebuttal Round",
     3: "Final Clash",
 }
 
-load_dotenv()
+# ─── Pydantic Models ──────────────────────────────────────────────────────────
+class ProviderConfig(BaseModel):
+    provider: str
+    model: str
+    api_key: str
 
-app = FastAPI(title="ThinkTank", version="2.0.0")
+
+class Agent(BaseModel):
+    name: str = Field(..., min_length=1, max_length=40)
+    role: str
+    provider_config: ProviderConfig
+
+
+class DebateRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=600)
+    agents: list[Agent] = Field(..., min_length=2, max_length=5)
+    rounds: int = Field(default=2, ge=1, le=3)
+
+
+class ValidateRequest(BaseModel):
+    provider: str
+    model: str
+    api_key: str
+
+
+# ─── FastAPI App ──────────────────────────────────────────────────────────────
+app = FastAPI(title="ThinkTank")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-class ProviderKeys(BaseModel):
-    openai: str = ""
-    gemini: str = ""
-    claude: str = ""
-    grok: str = ""
-
-
-class Agent(BaseModel):
-    name: str = Field(..., min_length=1, max_length=40)
-    personality: str = Field(..., min_length=1, max_length=500)
-    provider: str
-    color: str
-
-
-class DebateRequest(BaseModel):
-    topic: str = Field(..., min_length=1, max_length=700)
-    agents: list[Agent] = Field(..., min_length=2, max_length=5)
-    rounds: int = Field(default=2, ge=1, le=3)
-    provider_keys: ProviderKeys
-
-
-def sse_event(payload: dict[str, Any]) -> str:
-    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
-def clean_provider(provider: str) -> str:
-    return provider.strip().lower()
-
-
-def get_key(keys: ProviderKeys, provider: str) -> str:
-    return getattr(keys, clean_provider(provider), "").strip()
-
-
-def provider_display_name(provider: str) -> str:
-    return PROVIDER_DISPLAY.get(clean_provider(provider), provider)
-
-
-def normalize_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
-    normalized: list[dict[str, str]] = []
-    for message in messages:
-        role = message.get("role", "user")
-        content = str(message.get("content", "")).strip()
-        if role == "system" or not content:
-            continue
-        if role not in {"user", "assistant"}:
-            role = "user"
-        if normalized and normalized[-1]["role"] == role:
-            normalized[-1]["content"] += f"\n\n{content}"
-        else:
-            normalized.append({"role": role, "content": content})
-    return normalized or [{"role": "user", "content": "Begin."}]
-
-
-def to_gemini_contents(messages: list[dict[str, str]]) -> list[dict[str, Any]]:
-    role_map = {"assistant": "model", "user": "user"}
-    contents: list[dict[str, Any]] = []
-    for message in normalize_messages(messages):
-        gemini_role = role_map.get(message["role"], "user")
-        if contents and contents[-1]["role"] == gemini_role:
-            contents[-1]["parts"][0] += f"\n\n{message['content']}"
-        else:
-            contents.append({"role": gemini_role, "parts": [message["content"]]})
-    return contents
-
-
-def _next_gemini_chunk(iterator: Any) -> str | None:
-    try:
-        chunk = next(iterator)
-    except StopIteration:
-        return None
-
-    text = getattr(chunk, "text", None)
-    if text:
-        return text
-    parts = getattr(chunk, "parts", None) or []
-    extracted: list[str] = []
-    for part in parts:
-        value = getattr(part, "text", None)
-        if value:
-            extracted.append(value)
-    return "".join(extracted) if extracted else ""
-
-
-async def call_llm_stream(
-    provider: str,
-    api_key: str,
+# ─── Unified LLM Streaming ────────────────────────────────────────────────────
+async def stream_llm(
+    provider_config: ProviderConfig,
     system: str,
     messages: list[dict],
-    temperature: float,
+    temperature: float = 0.85,
 ) -> AsyncGenerator[str, None]:
-    provider = clean_provider(provider)
-    api_key = api_key.strip()
+    provider = provider_config.provider
+    api_key = provider_config.api_key
+    model = provider_config.model
 
-    if provider not in PROVIDERS:
-        raise ValueError(f"Unsupported provider: {provider}")
-    if not api_key:
-        raise ValueError(f"Missing API key for {provider_display_name(provider)}.")
-
-    if provider in {"openai", "grok"}:
-        client_kwargs: dict[str, str] = {"api_key": api_key}
-        if provider == "grok":
-            client_kwargs["base_url"] = "https://api.x.ai/v1"
-        client = AsyncOpenAI(**client_kwargs)
+    if provider == "openai":
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key)
+        full_messages = [{"role": "system", "content": system}] + messages
         stream = await client.chat.completions.create(
-            model=PROVIDER_MODELS[provider],
-            messages=[{"role": "system", "content": system}, *normalize_messages(messages)],
+            model=model,
+            messages=full_messages,
             temperature=temperature,
             stream=True,
         )
-        async for event in stream:
-            if not event.choices:
-                continue
-            chunk = event.choices[0].delta.content
-            if chunk:
-                yield chunk
-        return
+        async for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
 
-    if provider == "claude":
+    elif provider == "grok":
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+        full_messages = [{"role": "system", "content": system}] + messages
+        stream = await client.chat.completions.create(
+            model=model,
+            messages=full_messages,
+            temperature=temperature,
+            stream=True,
+        )
+        async for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
+
+    elif provider == "claude":
+        from anthropic import AsyncAnthropic
         client = AsyncAnthropic(api_key=api_key)
         async with client.messages.stream(
-            model=PROVIDER_MODELS[provider],
-            max_tokens=700,
-            temperature=temperature,
+            model=model,
+            max_tokens=1024,
             system=system,
-            messages=normalize_messages(messages),
+            messages=messages,
+            temperature=temperature,
         ) as stream:
             async for text in stream.text_stream:
-                if text:
-                    yield text
-        return
+                yield text
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(PROVIDER_MODELS[provider], system_instruction=system)
-    iterator = await asyncio.to_thread(
-        lambda: model.generate_content(
-            to_gemini_contents(messages),
-            generation_config={"temperature": temperature, "max_output_tokens": 700},
+    elif provider == "gemini":
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        gemini_model = genai.GenerativeModel(model)
+
+        # Convert messages to Gemini format
+        gemini_messages = []
+        for i, msg in enumerate(messages):
+            role = msg["role"]
+            content = msg["content"]
+            if role == "system":
+                # Prepend to first user message
+                continue
+            elif role == "user":
+                # Check if we need to prepend system prompt
+                if i == 0 or (i == 1 and messages[0]["role"] == "system"):
+                    content = f"System: {system}\n\n{content}"
+                gemini_messages.append({"role": "user", "parts": [content]})
+            elif role == "assistant":
+                gemini_messages.append({"role": "model", "parts": [content]})
+
+        if not gemini_messages:
+            gemini_messages = [{"role": "user", "parts": [f"System: {system}\n\n{messages[-1]['content']}"]}]
+
+        response = await gemini_model.generate_content_async(
+            gemini_messages,
             stream=True,
+            generation_config={"temperature": temperature, "max_output_tokens": 1024},
         )
+        async for chunk in response:
+            if chunk.text:
+                yield chunk.text
+
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+
+# ─── System Prompts ───────────────────────────────────────────────────────────
+ROLE_CONTEXT = {
+    "Optimist": "You see the best possible outcomes and opportunities in everything. Champion progress and possibility.",
+    "Skeptic": "You question assumptions and demand evidence for every claim. Nothing passes without scrutiny.",
+    "Devil's Advocate": "You argue the opposite of the obvious position, even if you personally disagree. Challenge consensus.",
+    "Neutral": "You present balanced perspectives, weighing pros and cons carefully. Seek nuance over polarization.",
+}
+
+
+def debater_system_prompt(agent: Agent, topic: str, round_num: int) -> str:
+    role_context = ROLE_CONTEXT.get(agent.role, agent.role)
+    provider_name = PROVIDERS.get(agent.provider_config.provider, {}).get("name", agent.provider_config.provider)
+    memory_note = (
+        "CRITICAL: Your memory has been fully reset. You have NO recollection of your previous arguments. "
+        "Reason completely fresh from first principles — do NOT reference or repeat what you said before."
+        if round_num > 1
+        else ""
     )
-    while True:
-        chunk = await asyncio.to_thread(_next_gemini_chunk, iterator)
-        if chunk is None:
-            break
-        if chunk:
-            yield chunk
-
-
-def debater_system_prompt(agent: Agent, topic: str) -> str:
-    return f"""
-You are {agent.name}, a debater with this personality: {agent.personality}.
-You are powered by {provider_display_name(agent.provider)}.
-Debate topic: "{topic}"
-Argue passionately in 3-5 sentences. Be opinionated. No bullet points. Speak naturally.
-Reference and push back on what others have said when possible.
-""".strip()
+    return f"""You are {agent.name}, a debater powered by {provider_name}.
+Your role: {agent.role}
+{role_context}
+{memory_note}
+Topic: "{topic}"
+Argue passionately in 3-5 sentences. Be direct and opinionated. No bullet points. Speak naturally.
+When you've seen others' arguments, push back on them forcefully.""".strip()
 
 
 def judge_system_prompt(topic: str) -> str:
-    return f"""
-You are an impartial Judge. Read the full debate on "{topic}" and deliver a verdict:
-1. Name the strongest point from each debater (mention them by name)
-2. Synthesize a final answer from the best arguments
-3. Declare an overall winner and why
-Tone: formal but engaging. Length: 6-8 sentences.
-""".strip()
+    return f"""You are an impartial Judge AI synthesizing a multi-round, multi-model debate on: "{topic}"
+
+Each agent had their memory fully reset between rounds — so each round represents genuinely independent reasoning, not position defense. This is the Cold Start Protocol: same model, potentially different conclusion each round.
+
+Your verdict must:
+1. Identify the most compelling argument from each debater across all rounds (name them explicitly)
+2. Highlight where agents INDEPENDENTLY converged on the same point — this is the strongest signal of truth
+3. Note any dramatic position shifts between rounds (evidence of genuine fresh reasoning)
+4. Synthesize a final answer drawing from the strongest cross-model reasoning
+5. Declare a winner — the agent whose reasoning was most consistent and intellectually compelling
+
+Be formal but engaging. 7-9 sentences. End with "WINNER: [Agent Name]" on its own line."""
 
 
-def transcript_context(transcript: list[dict[str, str]]) -> str:
-    if not transcript:
-        return "No one has spoken yet."
-    return "\n\n".join(
-        f"{item['agent']} ({provider_display_name(item['provider'])}): {item['content']}"
-        for item in transcript
-    )
+# ─── SSE Helpers ─────────────────────────────────────────────────────────────
+def sse(data: dict) -> str:
+    return f"data: {json.dumps(data)}\n\n"
 
 
-def build_turn_messages(
-    *,
-    topic: str,
-    agent: Agent,
-    round_number: int,
-    transcript: list[dict[str, str]],
-) -> list[dict[str, str]]:
-    if round_number == 1:
-        prompt = f"Give your opening argument on: {topic}"
-    elif round_number == 2:
-        prompt = (
-            f"Debate so far:\n{transcript_context(transcript)}\n\n"
-            f"Now give your rebuttal as {agent.name}. Push back on specific claims."
-        )
-    else:
-        prompt = (
-            f"Full debate so far:\n{transcript_context(transcript)}\n\n"
-            f"Now give your final counterpoint as {agent.name}. Make it decisive."
-        )
-    return [{"role": "user", "content": prompt}]
-
-
-def clamp_score(value: int) -> int:
-    return max(0, min(100, int(value)))
-
-
-def heuristic_score(topic: str, argument: str) -> int:
-    words = re.findall(r"[A-Za-z0-9']+", argument)
-    unique_words = len(set(word.lower() for word in words))
-    topic_terms = set(re.findall(r"[A-Za-z0-9']+", topic.lower()))
-    overlap = len(topic_terms.intersection(word.lower() for word in words))
-    length_score = min(32, len(words) // 4)
-    originality_score = min(24, unique_words // 5)
-    topic_score = min(14, overlap * 4)
-    punctuation_score = 6 if any(mark in argument for mark in ("?", "!", ";", ":")) else 0
-    return clamp_score(34 + length_score + originality_score + topic_score + punctuation_score)
-
-
-async def score_argument(
-    *,
-    topic: str,
-    agent_name: str,
-    argument: str,
-    provider_keys: ProviderKeys,
-) -> int:
-    api_key = provider_keys.openai.strip()
-    if not api_key:
-        return heuristic_score(topic, argument)
-
-    client = AsyncOpenAI(api_key=api_key)
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a debate scorer. Score this argument 0-100 on "
-                        'persuasiveness, clarity, and originality. Reply with ONLY a JSON object: {"score": <integer>}'
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"Topic: {topic}\n\nArgument by {agent_name}:\n{argument}",
-                },
-            ],
-        )
-        content = response.choices[0].message.content or "{}"
-        parsed = json.loads(content)
-        return clamp_score(parsed.get("score", heuristic_score(topic, argument)))
-    except Exception:
-        return heuristic_score(topic, argument)
-
-
-def choose_judge_provider(payload: DebateRequest) -> str | None:
-    if payload.provider_keys.openai.strip():
-        return "openai"
-    for agent in payload.agents:
-        provider = clean_provider(agent.provider)
-        if get_key(payload.provider_keys, provider):
-            return provider
-    return None
-
-
-def provider_error_message(provider: str, exc: Exception) -> str:
-    display = provider_display_name(provider)
-    if isinstance(
-        exc,
-        (
-            OpenAIAuthenticationError,
-            AnthropicAuthenticationError,
-        ),
-    ):
-        return f"{display} rejected the API key. Check Settings and try again."
-    if isinstance(
-        exc,
-        (
-            OpenAIAPIStatusError,
-            OpenAIAPIError,
-            AnthropicAPIStatusError,
-            AnthropicAPIError,
-        ),
-    ):
-        return f"{display} returned an API error: {str(exc)}"
-    return f"{display} failed: {str(exc) or 'Unknown provider error.'}"
-
-
+# ─── Debate Stream ────────────────────────────────────────────────────────────
 async def debate_stream(payload: DebateRequest) -> AsyncGenerator[str, None]:
-    transcript: list[dict[str, str]] = []
+    all_rounds_transcript = []
 
-    try:
-        for round_number in range(1, payload.rounds + 1):
-            yield sse_event(
-                {
-                    "type": "round_start",
-                    "round": round_number,
-                    "label": ROUND_LABELS.get(round_number, f"Round {round_number}"),
-                }
-            )
+    for round_num in range(1, payload.rounds + 1):
+        label = ROUND_LABELS.get(round_num, f"Round {round_num}")
+        yield sse({"type": "round_start", "round": round_num, "total": payload.rounds, "label": label})
+        await asyncio.sleep(0.1)
 
-            for agent in payload.agents:
-                provider = clean_provider(agent.provider)
-                api_key = get_key(payload.provider_keys, provider)
-                if not api_key:
-                    yield sse_event(
-                        {
-                            "type": "error",
-                            "message": f"{agent.name} is assigned to {provider_display_name(provider)}, but no API key is configured.",
-                        }
+        round_transcript = []
+
+        for agent in payload.agents:
+            messages = []
+            if round_num > 1:
+                prev_round = all_rounds_transcript[-1]
+                others = [e for e in prev_round if e["agent"] != agent.name]
+                if others:
+                    others_text = "\n\n".join(
+                        f"{e['agent']} argued: {e['content']}" for e in others
                     )
-                    return
-
-                yield sse_event(
-                    {"type": "agent_start", "agent": agent.name, "provider": provider}
-                )
-                chunks: list[str] = []
-                try:
-                    async for chunk in call_llm_stream(
-                        provider=provider,
-                        api_key=api_key,
-                        system=debater_system_prompt(agent, payload.topic),
-                        messages=build_turn_messages(
-                            topic=payload.topic,
-                            agent=agent,
-                            round_number=round_number,
-                            transcript=transcript,
-                        ),
-                        temperature=0.86,
-                    ):
-                        chunks.append(chunk)
-                        yield sse_event(
-                            {"type": "message", "agent": agent.name, "chunk": chunk}
-                        )
-                except Exception as exc:
-                    yield sse_event({"type": "error", "message": provider_error_message(provider, exc)})
-                    return
-
-                argument = "".join(chunks).strip()
-                transcript.append(
-                    {
-                        "agent": agent.name,
-                        "provider": provider,
-                        "content": argument,
-                    }
-                )
-                score = await score_argument(
-                    topic=payload.topic,
-                    agent_name=agent.name,
-                    argument=argument,
-                    provider_keys=payload.provider_keys,
-                )
-                yield sse_event({"type": "score", "agent": agent.name, "score": score})
-
-        judge_provider = choose_judge_provider(payload)
-        if not judge_provider:
-            yield sse_event(
-                {
-                    "type": "error",
-                    "message": "No configured provider is available for the final Judge verdict.",
-                }
-            )
-            return
-
-        yield sse_event({"type": "judge_start"})
-        try:
-            async for chunk in call_llm_stream(
-                provider=judge_provider,
-                api_key=get_key(payload.provider_keys, judge_provider),
-                system=judge_system_prompt(payload.topic),
-                messages=[
-                    {
+                    messages.append({
                         "role": "user",
                         "content": (
-                            f"Topic: {payload.topic}\n\nFull debate transcript:\n"
-                            f"{transcript_context(transcript)}"
+                            f"[COLD START — your memory has been wiped]\n\n"
+                            f"Other perspectives from the previous round:\n\n{others_text}\n\n"
+                            f"Now give YOUR fresh argument on: {payload.topic}"
                         ),
-                    }
-                ],
-                temperature=0.34,
-            ):
-                yield sse_event(
-                    {"type": "message", "agent": "Judge", "chunk": chunk, "role": "judge"}
-                )
-        except Exception as exc:
-            yield sse_event(
-                {"type": "error", "message": provider_error_message(judge_provider, exc)}
-            )
-            return
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": f"Give your fresh argument on: {payload.topic}",
+                    })
+            else:
+                messages.append({
+                    "role": "user",
+                    "content": f"Give your opening argument on: {payload.topic}",
+                })
 
-        yield sse_event({"type": "done"})
-    except asyncio.CancelledError:
-        raise
-    except Exception as exc:
-        yield sse_event({"type": "error", "message": f"Debate failed: {str(exc)}"})
+            system = debater_system_prompt(agent, payload.topic, round_num)
 
+            yield sse({
+                "type": "agent_start",
+                "agent": agent.name,
+                "provider": agent.provider_config.provider,
+                "model": agent.provider_config.model,
+                "round": round_num,
+            })
 
-async def validate_openai_like(provider: str, api_key: str) -> bool:
-    client_kwargs: dict[str, str] = {"api_key": api_key}
-    if provider == "grok":
-        client_kwargs["base_url"] = "https://api.x.ai/v1"
-    client = AsyncOpenAI(**client_kwargs)
-    await client.chat.completions.create(
-        model=PROVIDER_MODELS[provider],
-        messages=[{"role": "user", "content": "Reply with OK."}],
-        max_tokens=2,
-        temperature=0,
-    )
-    return True
+            full_response = []
+            try:
+                async for chunk in stream_llm(agent.provider_config, system, messages):
+                    yield sse({"type": "chunk", "agent": agent.name, "text": chunk})
+                    full_response.append(chunk)
+            except Exception as e:
+                yield sse({"type": "error", "message": f"{agent.name} ({agent.provider_config.provider}): {str(e)}"})
+                full_response = ["[Error generating response]"]
 
+            agent_content = "".join(full_response)
+            round_transcript.append({"agent": agent.name, "content": agent_content})
+            yield sse({"type": "agent_done", "agent": agent.name})
+            await asyncio.sleep(0.2)
 
-async def validate_gemini(api_key: str) -> bool:
-    def run() -> bool:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(PROVIDER_MODELS["gemini"])
-        model.generate_content("Reply with OK.", generation_config={"max_output_tokens": 2})
-        return True
+        all_rounds_transcript.append(round_transcript)
 
-    return await asyncio.to_thread(run)
+        if round_num < payload.rounds:
+            yield sse({"type": "memory_reset", "round": round_num + 1})
+            await asyncio.sleep(0.8)
 
+    # Judge
+    yield sse({"type": "judge_start"})
 
-async def validate_claude(api_key: str) -> bool:
-    client = AsyncAnthropic(api_key=api_key)
-    await client.messages.create(
-        model=PROVIDER_MODELS["claude"],
-        max_tokens=2,
-        temperature=0,
-        messages=[{"role": "user", "content": "Reply with OK."}],
-    )
-    return True
+    all_text_parts = []
+    for i, round_t in enumerate(all_rounds_transcript, 1):
+        all_text_parts.append(f"=== ROUND {i}: {ROUND_LABELS.get(i, f'Round {i}')} ===")
+        for entry in round_t:
+            all_text_parts.append(f"{entry['agent']}: {entry['content']}")
 
+    judge_messages = [{"role": "user", "content": "\n\n".join(all_text_parts)}]
+    judge_provider = payload.agents[0].provider_config
 
-async def validate_provider(provider: str, api_key: str) -> bool:
-    if not api_key.strip():
-        return False
+    winner = None
+    judge_text = []
     try:
-        if provider in {"openai", "grok"}:
-            return await validate_openai_like(provider, api_key.strip())
-        if provider == "gemini":
-            return await validate_gemini(api_key.strip())
-        if provider == "claude":
-            return await validate_claude(api_key.strip())
-    except Exception:
-        return False
-    return False
+        async for chunk in stream_llm(judge_provider, judge_system_prompt(payload.topic), judge_messages, temperature=0.3):
+            yield sse({"type": "chunk", "agent": "Judge", "text": chunk, "role": "judge"})
+            judge_text.append(chunk)
+    except Exception as e:
+        yield sse({"type": "error", "message": f"Judge error: {str(e)}"})
+
+    # Extract winner from judge text
+    full_judge = "".join(judge_text)
+    for line in full_judge.split("\n"):
+        if line.strip().startswith("WINNER:"):
+            winner_raw = line.split(":", 1)[1].strip()
+            for agent in payload.agents:
+                if agent.name.lower() in winner_raw.lower():
+                    winner = agent.name
+                    break
+
+    yield sse({"type": "done", "winner": winner})
 
 
-def validate_payload(payload: DebateRequest) -> DebateRequest:
-    clean_agents: list[Agent] = []
-    for agent in payload.agents:
-        provider = clean_provider(agent.provider)
-        if provider not in PROVIDERS:
-            raise HTTPException(status_code=400, detail=f"Unsupported provider: {agent.provider}")
-        name = agent.name.strip()
-        personality = agent.personality.strip()
-        if not name or not personality:
-            raise HTTPException(
-                status_code=400,
-                detail="Every agent needs a non-empty name and personality.",
-            )
-        clean_agents.append(
-            Agent(
-                name=name,
-                personality=personality,
-                provider=provider,
-                color=agent.color.strip(),
-            )
-        )
-
-    if len({agent.name.lower() for agent in clean_agents}) != len(clean_agents):
-        raise HTTPException(status_code=400, detail="Agent names must be unique.")
-
-    return DebateRequest(
-        topic=payload.topic.strip(),
-        agents=clean_agents,
-        rounds=payload.rounds,
-        provider_keys=ProviderKeys(
-            openai=payload.provider_keys.openai.strip(),
-            gemini=payload.provider_keys.gemini.strip(),
-            claude=payload.provider_keys.claude.strip(),
-            grok=payload.provider_keys.grok.strip(),
-        ),
-    )
-
-
+# ─── Endpoints ────────────────────────────────────────────────────────────────
 @app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(BASE_DIR / "index.html")
+async def root():
+    return FileResponse("index.html")
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
+async def health():
     return {"status": "ok"}
 
 
-@app.post("/validate-keys")
-async def validate_keys(provider_keys: ProviderKeys) -> dict[str, bool]:
-    tasks = {
-        provider: validate_provider(provider, get_key(provider_keys, provider))
-        for provider in ("openai", "gemini", "claude", "grok")
-    }
-    results = await asyncio.gather(*tasks.values())
-    return dict(zip(tasks.keys(), results, strict=True))
+@app.get("/providers")
+async def get_providers():
+    return PROVIDERS
+
+
+@app.post("/validate")
+async def validate(req: ValidateRequest):
+    try:
+        chunks = []
+        async for chunk in stream_llm(
+            ProviderConfig(provider=req.provider, model=req.model, api_key=req.api_key),
+            "You are a test assistant.",
+            [{"role": "user", "content": "Reply with exactly: OK"}],
+            temperature=0.0,
+        ):
+            chunks.append(chunk)
+            if len("".join(chunks)) > 50:
+                break
+        return {"valid": True, "error": None}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
 
 
 @app.post("/debate")
-async def debate(payload: DebateRequest) -> StreamingResponse:
-    clean_payload = validate_payload(payload)
+async def debate(payload: DebateRequest):
     return StreamingResponse(
-        debate_stream(clean_payload),
+        debate_stream(payload),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
     )
 
 
+# ─── Entry Point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", "8010")))
+    port = int(os.environ.get("PORT", 8010))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
