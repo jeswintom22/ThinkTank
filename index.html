@@ -6,17 +6,25 @@
   <title>ThinkTank</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0a0f;
-      --panel: #12121a;
-      --panel-2: #181824;
-      --line: rgba(255, 255, 255, 0.09);
+      --bg: #080810;
+      --panel: #0f0f1e;
+      --panel-2: #15152a;
+      --panel-3: #101025;
+      --accent: #7c3aed;
+      --accent-2: #4f46e5;
+      --line: rgba(124, 58, 237, 0.25);
       --text: #f8fafc;
-      --muted: #a1a1aa;
+      --muted: #a3a3b8;
       --danger: #f87171;
-      --gold: #ffd700;
+      --ok: #22c55e;
+      --gold: #facc15;
+      --openai: #10b981;
+      --gemini: #4285f4;
+      --claude: #d97757;
+      --grok: #e5e7eb;
       --radius: 8px;
     }
 
@@ -24,353 +32,678 @@
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
       overflow: hidden;
       background:
-        radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 34rem),
-        linear-gradient(135deg, #0a0a0f 0%, #101018 55%, #08080d 100%);
-      color: var(--text);
-      font-family: "Outfit", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        linear-gradient(rgba(124, 58, 237, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 58, 237, 0.07) 1px, transparent 1px),
+        linear-gradient(145deg, #080810 0%, #0d0d19 48%, #080810 100%);
+      background-size: 42px 42px, 42px 42px, auto;
     }
 
     button,
     input,
-    textarea {
+    textarea,
+    select {
       font: inherit;
     }
 
     button {
-      border: 0;
       cursor: pointer;
+      border: 0;
     }
 
-    .app {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .setup-screen,
-    .debate-screen {
-      height: 100vh;
-      width: 100%;
-    }
-
-    .setup-screen {
-      overflow-y: auto;
-      padding: 42px 20px;
-    }
-
-    .setup-shell {
-      width: min(920px, 100%);
-      margin: 0 auto;
-    }
-
-    .brand {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: clamp(3rem, 8vw, 6rem);
-      line-height: 0.9;
-      font-weight: 800;
+    h1,
+    h2,
+    h3,
+    .brand,
+    .rpg-name,
+    .provider-badge,
+    .round-banner,
+    .battle-title,
+    .top-logo,
+    .stat-label,
+    .winner-crown {
+      font-family: "Rajdhani", sans-serif;
       letter-spacing: 0;
-      color: #fff;
-      text-shadow: 0 0 34px rgba(99, 102, 241, 0.42);
     }
 
-    .brand p {
-      margin: 14px 0 0;
-      color: #d4d4d8;
-      font-size: 1.18rem;
+    .screen {
+      min-height: 100vh;
+      display: none;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .settings-screen,
+    .setup-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 28px 18px;
+      overflow-y: auto;
+    }
+
+    .panel {
+      width: min(100%, 540px);
+      background: rgba(15, 15, 30, 0.96);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 0 38px rgba(124, 58, 237, 0.16), 0 24px 80px rgba(0, 0, 0, 0.44);
+      padding: 28px;
     }
 
     .setup-panel {
-      background: rgba(18, 18, 26, 0.9);
+      width: min(100%, 1040px);
+    }
+
+    .brand {
+      margin: 0;
+      font-size: 48px;
+      line-height: 0.95;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      text-shadow: 0 0 28px rgba(124, 58, 237, 0.54);
+    }
+
+    .subtitle {
+      margin: 9px 0 26px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .provider-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 14px;
+      margin: 12px 0;
+      background: rgba(255, 255, 255, 0.025);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
-      padding: 26px;
+    }
+
+    .provider-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 800;
+    }
+
+    .key-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #6b7280;
+      box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.13);
+    }
+
+    .key-dot.valid {
+      background: var(--ok);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+    }
+
+    .key-dot.invalid {
+      background: var(--danger);
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18);
+    }
+
+    .key-wrap {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 8px;
+    }
+
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      color: var(--text);
+      background: #0a0a15;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .input,
+    .select {
+      min-height: 44px;
+      padding: 0 12px;
+    }
+
+    .textarea {
+      min-height: 94px;
+      resize: vertical;
+      padding: 11px 12px;
+      line-height: 1.42;
+    }
+
+    .input:focus,
+    .textarea:focus,
+    .select:focus {
+      background: #101025;
+      border-color: rgba(124, 58, 237, 0.82);
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14);
+    }
+
+    .icon-btn {
+      display: inline-grid;
+      place-items: center;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: var(--radius);
+      color: var(--text);
+      background: #17172d;
+      border: 1px solid var(--line);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: var(--radius);
+      color: var(--text);
+      background: #17172d;
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .btn.primary {
+      flex: 1;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 24px rgba(124, 58, 237, 0.32), 0 14px 34px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+      box-shadow: none;
+    }
+
+    .setup-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .setup-head h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      line-height: 0.92;
+    }
+
+    .setup-head p {
+      margin: 7px 0 0;
+      color: var(--muted);
+    }
+
+    .mini-link {
+      flex: 0 0 auto;
+      min-height: 38px;
+      padding: 0 12px;
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      font-weight: 700;
     }
 
     .field-label {
       display: block;
-      margin-bottom: 10px;
-      color: #e5e7eb;
-      font-weight: 700;
-    }
-
-    .topic-input,
-    .agent-card input,
-    .agent-card textarea {
-      width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      border-radius: var(--radius);
-      background: #0e0e15;
-      color: var(--text);
-      outline: none;
-      transition: border 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      margin: 0 0 8px;
+      color: #e6e1ff;
+      font-weight: 800;
     }
 
     .topic-input {
-      min-height: 60px;
-      padding: 0 18px;
-      font-size: 1.05rem;
-    }
-
-    .topic-input:focus,
-    .agent-card input:focus,
-    .agent-card textarea:focus {
-      border-color: rgba(99, 102, 241, 0.78);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.14);
-      background: #10101a;
+      min-height: 58px;
+      font-size: 1rem;
     }
 
     .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      margin: 28px 0 14px;
+      gap: 12px;
+      margin: 24px 0 12px;
     }
 
     .section-head h2 {
       margin: 0;
-      font-size: 1.25rem;
-    }
-
-    .add-agent {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 40px;
-      padding: 0 14px;
-      border-radius: var(--radius);
-      color: white;
-      background: #23233a;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 1.35rem;
     }
 
     .agents-grid {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
 
-    .agent-card {
+    .setup-agent-card {
       display: grid;
-      grid-template-columns: 48px 1fr 44px;
-      gap: 14px;
-      align-items: start;
-      padding: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      grid-template-columns: 54px 1fr 44px;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.035);
+      background: rgba(255, 255, 255, 0.025);
     }
 
-    .avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
+    .setup-avatar,
+    .battle-avatar,
+    .chat-avatar {
       display: grid;
       place-items: center;
-      color: white;
-      font-family: "JetBrains Mono", monospace;
+      border-radius: 50%;
+      color: #05050b;
+      font-family: "Rajdhani", sans-serif;
       font-weight: 700;
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
-      flex: 0 0 auto;
+      line-height: 1;
+      box-shadow: 0 0 20px color-mix(in srgb, currentColor 30%, transparent), inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+    }
+
+    .setup-avatar {
+      width: 50px;
+      height: 50px;
+      font-size: 1.35rem;
     }
 
     .agent-fields {
       display: grid;
-      grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr);
-      gap: 12px;
-    }
-
-    .agent-card input,
-    .agent-card textarea {
-      min-height: 44px;
-      padding: 10px 12px;
-    }
-
-    .agent-card textarea {
-      resize: vertical;
-      min-height: 44px;
-      max-height: 130px;
-    }
-
-    .remove-agent {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: rgba(239, 68, 68, 0.13);
-      color: #fecaca;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      font-size: 1.25rem;
-      line-height: 1;
-    }
-
-    .controls-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-top: 24px;
-    }
-
-    .rounds-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #e5e7eb;
-      font-weight: 700;
-    }
-
-    .round-options {
-      display: grid;
-      grid-template-columns: repeat(3, 86px);
-      gap: 6px;
-      padding: 5px;
-      border-radius: var(--radius);
-      background: #0c0c13;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .round-options button {
-      height: 38px;
-      border-radius: 6px;
-      background: transparent;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .round-options button.active {
-      color: white;
-      background: #3b3b5c;
-    }
-
-    .start-button,
-    .new-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 52px;
-      padding: 0 24px;
-      border-radius: var(--radius);
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      color: white;
-      font-weight: 800;
-      box-shadow: 0 16px 36px rgba(99, 102, 241, 0.28);
-    }
-
-    .start-button {
-      min-width: 210px;
-    }
-
-    .start-button:disabled {
-      cursor: wait;
-      opacity: 0.72;
-    }
-
-    .debate-screen {
-      display: none;
-      background: var(--bg);
-    }
-
-    .topbar {
-      height: 76px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      padding: 0 24px;
-      background: rgba(18, 18, 26, 0.96);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .topic-title {
+      gap: 9px;
       min-width: 0;
     }
 
-    .topic-title strong {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 1.06rem;
+    .remove-btn {
+      align-self: start;
+      color: #fecaca;
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.32);
     }
 
-    .topic-title span,
-    .top-meta {
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .top-meta {
+    .round-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex: 0 0 auto;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 22px;
     }
 
-    .meta-pill {
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .round-pills {
+      display: grid;
+      grid-template-columns: repeat(3, 74px);
+      gap: 8px;
+    }
+
+    .round-pill {
+      min-height: 40px;
+      color: #c7c7dd;
+      background: #15152a;
+      border: 1px solid var(--line);
       border-radius: 999px;
-      padding: 7px 11px;
-      background: rgba(255, 255, 255, 0.04);
-      color: #e5e7eb;
+      font-weight: 800;
+    }
+
+    .round-pill.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.88), rgba(79, 70, 229, 0.88));
+      box-shadow: 0 0 18px rgba(124, 58, 237, 0.28);
+    }
+
+    .start-battle {
+      min-width: 220px;
+      min-height: 54px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: 1px solid rgba(167, 139, 250, 0.55);
+      border-radius: var(--radius);
+      font-family: "Rajdhani", sans-serif;
+      font-size: 1.24rem;
+      font-weight: 700;
+      box-shadow: 0 0 28px rgba(124, 58, 237, 0.46), 0 18px 42px rgba(0, 0, 0, 0.28);
+    }
+
+    .battle-screen {
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .battle-topbar {
+      min-height: 68px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 12px 22px;
+      background: rgba(15, 15, 30, 0.98);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+      z-index: 5;
+    }
+
+    .top-logo {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      min-width: 0;
       font-weight: 700;
     }
 
-    .chat-wrap {
-      height: calc(100vh - 76px);
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
+    .top-logo span:first-child {
+      font-size: 1.6rem;
+      color: #ffffff;
+      text-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
     }
 
-    .chat-window {
+    .topic-line {
+      min-width: 0;
+      overflow: hidden;
+      color: #d8d6ee;
+      font-family: "Inter", sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .battle-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .meta-pill,
+    .round-label-pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0 12px;
+      background: rgba(124, 58, 237, 0.12);
+      color: #eeeaff;
+      font-family: "Rajdhani", sans-serif;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .battle-main {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .portrait-panel {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(180px, 1fr);
+      gap: 12px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      background: rgba(8, 8, 16, 0.82);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .portrait-card {
+      position: relative;
+      min-height: 214px;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      gap: 7px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
+      transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
+    }
+
+    .portrait-card.active {
+      transform: translateY(-2px);
+      border-color: var(--agent-color);
+      box-shadow: 0 0 20px var(--agent-glow), inset 0 0 24px rgba(255, 255, 255, 0.025);
+    }
+
+    .portrait-card.winner {
+      border-color: rgba(250, 204, 21, 0.88);
+      box-shadow: 0 0 30px rgba(250, 204, 21, 0.42);
+      animation: goldPulse 1.6s ease-in-out infinite;
+    }
+
+    .winner-crown {
+      position: absolute;
+      top: -18px;
+      font-size: 1.9rem;
+      filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.6));
+      display: none;
+    }
+
+    .portrait-card.winner .winner-crown {
+      display: block;
+    }
+
+    .battle-avatar {
+      width: 56px;
+      height: 56px;
+      font-size: 1.65rem;
+      background: var(--agent-color);
+      color: var(--avatar-text);
+    }
+
+    .rpg-name {
+      width: 100%;
+      overflow: hidden;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .provider-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      max-width: 100%;
+      padding: 0 9px;
+      color: var(--agent-color);
+      background: color-mix(in srgb, var(--agent-color) 13%, transparent);
+      border: 1px solid color-mix(in srgb, var(--agent-color) 42%, transparent);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .strength-block {
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .stat-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: #c7c2e8;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .strength-track {
+      height: 12px;
+      overflow: hidden;
+      background: #070711;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+    }
+
+    .strength-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--agent-color);
+      box-shadow: 0 0 14px var(--agent-glow);
+      transition: width 600ms ease;
+    }
+
+    .status-text {
+      width: 100%;
+      min-height: 20px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .battle-log-wrap {
+      min-height: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: rgba(15, 15, 30, 0.86);
+    }
+
+    .complete-banner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 22px;
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(124, 58, 237, 0.22));
+      border-bottom: 1px solid rgba(250, 204, 21, 0.44);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+      animation: slideDown 420ms ease both;
+    }
+
+    .battle-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff7c2;
+    }
+
+    .battle-log {
       flex: 1;
       overflow-y: auto;
-      padding: 28px max(18px, calc((100vw - 900px) / 2)) 26px;
+      padding: 24px max(18px, calc((100vw - 980px) / 2)) 28px;
       scroll-behavior: smooth;
+    }
+
+    .round-banner {
+      margin: 16px 0 22px;
+      padding: 12px 14px;
+      color: #ffffff;
+      text-align: center;
+      font-size: 1.18rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.66), rgba(79, 70, 229, 0.5));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 0 22px rgba(124, 58, 237, 0.28);
     }
 
     .message-row {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: flex-start;
-      margin: 18px 0;
-      animation: bubbleIn 240ms ease both;
+      margin: 16px 0;
+      animation: messageIn 220ms ease both;
+    }
+
+    .chat-avatar {
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      background: var(--agent-color);
+      color: var(--avatar-text);
+      font-size: 1.02rem;
     }
 
     .message-body {
       min-width: 0;
-      max-width: min(710px, calc(100vw - 110px));
+      max-width: min(780px, calc(100vw - 94px));
     }
 
-    .sender {
+    .message-head {
+      display: flex;
+      align-items: center;
+      gap: 7px;
       margin: 0 0 5px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 0.78rem;
+    }
+
+    .message-name {
+      overflow: hidden;
+      color: var(--agent-color);
+      font-family: "Rajdhani", sans-serif;
+      font-size: 1.02rem;
       font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .message-badge {
+      min-height: 20px;
+      padding: 0 7px;
+      font-size: 0.7rem;
     }
 
     .bubble {
       width: fit-content;
       max-width: 100%;
-      padding: 13px 15px;
-      border-radius: 8px 8px 8px 2px;
-      background: var(--panel-2);
-      border: 1px solid rgba(255, 255, 255, 0.075);
-      color: #f4f4f5;
+      min-height: 42px;
+      padding: 12px 14px;
+      color: #f6f6fb;
+      background: #111126;
+      border: 1px solid rgba(124, 58, 237, 0.22);
+      border-left: 2px solid var(--agent-color);
+      border-radius: 8px;
       line-height: 1.55;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
     }
 
     .judge-row {
@@ -378,107 +711,93 @@
       margin: 24px 0;
     }
 
-    .judge-bubble {
-      width: 100%;
-      max-width: 900px;
+    .judge-card {
+      max-width: 980px;
       margin: 0 auto;
-      border: 1px solid rgba(255, 215, 0, 0.72);
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.14), rgba(255, 255, 255, 0.045));
-      box-shadow: 0 0 34px rgba(255, 215, 0, 0.12);
+      padding: 16px;
+      color: #fffbe6;
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.14), rgba(15, 15, 30, 0.94));
+      border: 1px solid rgba(250, 204, 21, 0.68);
+      border-radius: var(--radius);
+      box-shadow: 0 0 28px rgba(250, 204, 21, 0.16);
     }
 
-    .typing-row {
-      opacity: 0.92;
+    .judge-title {
+      margin-bottom: 8px;
+      color: var(--gold);
+      font-family: "Rajdhani", sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
     }
 
     .typing-bubble {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      min-width: 66px;
-      min-height: 42px;
+      width: 82px;
+      min-height: 38px;
     }
 
-    .dot {
+    .typing-copy {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .typing-dot {
       width: 7px;
       height: 7px;
-      border-radius: 999px;
-      background: #d4d4d8;
+      border-radius: 50%;
+      background: #d8d6ee;
       animation: dotPulse 1s infinite ease-in-out;
     }
 
-    .dot:nth-child(2) {
-      animation-delay: 140ms;
+    .typing-dot:nth-child(2) {
+      animation-delay: 120ms;
     }
 
-    .dot:nth-child(3) {
-      animation-delay: 280ms;
-    }
-
-    .round-separator {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 14px;
-      margin: 18px 0 20px;
-      color: #e0e7ff;
-      font-weight: 800;
-    }
-
-    .round-separator::before,
-    .round-separator::after {
-      content: "";
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16));
-    }
-
-    .round-separator::after {
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent);
-    }
-
-    .round-separator span {
-      padding: 9px 14px;
-      border-radius: 999px;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.32);
-      white-space: nowrap;
-    }
-
-    .complete-banner {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px max(18px, calc((100vw - 900px) / 2));
-      background: #111827;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.25);
-    }
-
-    .complete-banner strong {
-      font-size: 1.05rem;
+    .typing-dot:nth-child(3) {
+      animation-delay: 240ms;
     }
 
     .toast {
       position: fixed;
       right: 18px;
       bottom: 18px;
-      z-index: 10;
+      z-index: 20;
       display: none;
-      max-width: min(380px, calc(100vw - 36px));
-      padding: 13px 15px;
-      border-radius: var(--radius);
+      width: min(420px, calc(100vw - 36px));
+      padding: 13px 14px;
+      color: #ffe0e0;
       background: #3b1117;
-      color: #fecaca;
-      border: 1px solid rgba(248, 113, 113, 0.4);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(248, 113, 113, 0.44);
+      border-radius: var(--radius);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
       font-weight: 700;
     }
 
-    @keyframes bubbleIn {
+    .confetti {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .confetti i {
+      position: absolute;
+      top: -12px;
+      width: 8px;
+      height: 14px;
+      background: var(--confetti-color);
+      transform: rotate(var(--confetti-rotate));
+      animation: confettiFall 1.9s linear forwards;
+    }
+
+    @keyframes messageIn {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
       }
       to {
         opacity: 1;
@@ -490,244 +809,272 @@
       0%,
       80%,
       100% {
+        opacity: 0.35;
         transform: translateY(0);
-        opacity: 0.42;
       }
       40% {
-        transform: translateY(-4px);
         opacity: 1;
+        transform: translateY(-4px);
       }
     }
 
-    @media (max-width: 760px) {
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes goldPulse {
+      0%,
+      100% {
+        box-shadow: 0 0 24px rgba(250, 204, 21, 0.28);
+      }
+      50% {
+        box-shadow: 0 0 42px rgba(250, 204, 21, 0.58);
+      }
+    }
+
+    @keyframes confettiFall {
+      to {
+        opacity: 0;
+        transform: translateY(105vh) rotate(calc(var(--confetti-rotate) + 360deg));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .agents-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
       body {
         overflow: auto;
       }
 
-      .setup-screen,
-      .debate-screen {
-        min-height: 100vh;
-        height: auto;
-      }
-
-      .setup-panel {
-        padding: 18px;
-      }
-
-      .agent-card {
-        grid-template-columns: 42px 1fr 38px;
-        gap: 10px;
-        padding: 13px;
-      }
-
-      .agent-fields {
-        grid-template-columns: 1fr;
-      }
-
-      .controls-row,
-      .topbar {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .controls-row {
-        gap: 14px;
-      }
-
-      .rounds-control {
+      .settings-screen,
+      .setup-screen {
         align-items: flex-start;
-        flex-direction: column;
       }
 
-      .round-options {
-        width: 100%;
+      .panel {
+        padding: 20px;
+      }
+
+      .actions,
+      .setup-head,
+      .round-row,
+      .battle-topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .setup-head {
+        display: flex;
+      }
+
+      .round-row {
+        display: flex;
+      }
+
+      .round-pills {
         grid-template-columns: repeat(3, 1fr);
       }
 
-      .start-button,
-      .new-button {
+      .start-battle {
         width: 100%;
       }
 
-      .topbar {
+      .battle-screen {
         height: auto;
-        padding: 14px 16px;
-        gap: 10px;
+        min-height: 100vh;
       }
 
-      .top-meta {
-        flex-wrap: wrap;
+      .battle-topbar {
+        display: flex;
+        min-height: auto;
+        padding: 13px 15px;
       }
 
-      .chat-wrap {
-        height: calc(100vh - 112px);
+      .top-logo {
+        flex-direction: column;
+        gap: 2px;
       }
 
-      .chat-window {
-        padding: 18px 14px 20px;
+      .battle-meta {
+        justify-content: flex-start;
+      }
+
+      .battle-main {
+        min-height: calc(100vh - 128px);
+      }
+
+      .portrait-panel {
+        grid-auto-flow: row;
+        grid-auto-columns: initial;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+        padding: 12px;
+      }
+
+      .portrait-card {
+        min-height: 204px;
+        padding: 12px;
+      }
+
+      .battle-log {
+        padding: 18px 12px 24px;
+      }
+
+      .message-body {
+        max-width: calc(100vw - 58px);
+      }
+
+      .bubble {
+        width: 100%;
       }
 
       .complete-banner {
+        position: sticky;
         flex-direction: column;
         align-items: stretch;
-        padding: 14px;
       }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <section class="setup-screen" id="setupScreen">
-      <div class="setup-shell">
-        <header class="brand">
-          <h1>ThinkTank</h1>
-          <p>Let AIs do the arguing</p>
-        </header>
+  <main>
+    <section class="screen settings-screen active" id="settingsScreen">
+      <div class="panel">
+        <h1 class="brand">ThinkTank</h1>
+        <p class="subtitle">Configure your AI combatants</p>
 
-        <div class="setup-panel">
-          <label class="field-label" for="topicInput">Debate topic</label>
-          <input class="topic-input" id="topicInput" type="text" placeholder="Is pineapple on pizza good? Should AI replace jobs? Anything...">
+        <div id="providerRows"></div>
 
-          <div class="section-head">
-            <h2>Agents</h2>
-            <button class="add-agent" id="addAgentBtn" type="button">+ Add Agent</button>
-          </div>
-          <div class="agents-grid" id="agentsGrid"></div>
-
-          <div class="controls-row">
-            <div class="rounds-control">
-              <span>Rounds</span>
-              <div class="round-options" id="roundOptions" aria-label="Choose debate rounds">
-                <button type="button" data-rounds="1">1 Round</button>
-                <button type="button" data-rounds="2" class="active">2 Rounds</button>
-                <button type="button" data-rounds="3">3 Rounds</button>
-              </div>
-            </div>
-            <button class="start-button" id="startBtn" type="button">Start Debate 🔥</button>
-          </div>
+        <div class="actions">
+          <button class="btn" id="validateBtn" type="button">Validate Keys</button>
+          <button class="btn primary" id="continueBtn" type="button" disabled>Continue →</button>
         </div>
       </div>
     </section>
 
-    <section class="debate-screen" id="debateScreen">
-      <header class="topbar">
-        <div class="topic-title">
-          <span>Topic</span>
-          <strong id="activeTopic"></strong>
+    <section class="screen setup-screen" id="setupScreen">
+      <div class="panel setup-panel">
+        <div class="setup-head">
+          <div>
+            <h1>Build Your Roster</h1>
+            <p>Choose fighters and set the battlefield</p>
+          </div>
+          <button class="mini-link" id="backToSettingsBtn" type="button">Settings</button>
         </div>
-        <div class="top-meta">
-          <span class="meta-pill" id="agentCount"></span>
-          <span class="meta-pill" id="roundIndicator">Round 1 of 2</span>
+
+        <label class="field-label" for="topicInput">Battlefield Topic</label>
+        <input class="input topic-input" id="topicInput" type="text" placeholder="What's the debate topic? Anything goes...">
+
+        <div class="section-head">
+          <h2>Fighters</h2>
+          <button class="btn" id="addFighterBtn" type="button">+ Add Fighter</button>
+        </div>
+        <div class="agents-grid" id="agentsGrid"></div>
+
+        <div class="round-row">
+          <div>
+            <span class="field-label">Rounds</span>
+            <div class="round-pills" id="roundPills">
+              <button class="round-pill" type="button" data-rounds="1">1</button>
+              <button class="round-pill active" type="button" data-rounds="2">2</button>
+              <button class="round-pill" type="button" data-rounds="3">3</button>
+            </div>
+          </div>
+          <button class="start-battle" id="startBattleBtn" type="button">START BATTLE 🔥</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen battle-screen" id="battleScreen">
+      <header class="battle-topbar">
+        <div class="top-logo">
+          <span>ThinkTank</span>
+          <span class="topic-line" id="battleTopic"></span>
+        </div>
+        <div class="battle-meta">
+          <span class="meta-pill" id="roundIndicator">ROUND 1 OF 2</span>
+          <span class="round-label-pill" id="roundLabel">Opening Strikes</span>
         </div>
       </header>
-      <div class="chat-wrap">
-        <div class="chat-window" id="chatWindow"></div>
-        <div class="complete-banner" id="completeBanner">
-          <strong>🎉 Debate Complete!</strong>
-          <button class="new-button" id="newDebateBtn" type="button">Start New Debate</button>
-        </div>
+
+      <div class="battle-main">
+        <section class="portrait-panel" id="portraitPanel" aria-label="Agent battle cards"></section>
+        <section class="battle-log-wrap">
+          <div class="complete-banner" id="completeBanner">
+            <span class="battle-title">BATTLE COMPLETE</span>
+            <button class="btn primary" id="fightAgainBtn" type="button">⚔️ Fight Again</button>
+          </div>
+          <div class="battle-log" id="battleLog"></div>
+        </section>
       </div>
     </section>
   </main>
 
-  <div class="toast" id="toast">Something went wrong. Try again.</div>
+  <div class="toast" id="toast"></div>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
 
   <script>
-    const sameOriginApi = window.location.protocol.startsWith("http")
-      ? `${window.location.origin}/debate`
-      : null;
-    const API_URLS = [
-      sameOriginApi,
-      "http://127.0.0.1:8010/debate",
-      "http://127.0.0.1:8000/debate",
-      "http://127.0.0.1:8001/debate"
-    ].filter(Boolean);
-    const colors = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#8b5cf6"];
-    const judgeColor = "#ffd700";
-
-    const defaultAgents = [
-      {
-        name: "Nova",
-        personality: "Optimistic futurist who believes technology solves everything"
-      },
-      {
-        name: "Rex",
-        personality: "Cynical realist who questions every assumption"
-      }
-    ];
-
-    const state = {
-      agents: [],
-      rounds: 2,
-      activeMessage: null,
-      activeTyping: null,
-      currentRound: 1
+    const PROVIDERS = {
+      openai: { label: "OpenAI GPT-4o", short: "OpenAI", color: "#10b981", placeholder: "sk-..." },
+      gemini: { label: "Google Gemini", short: "Gemini", color: "#4285f4", placeholder: "AIza..." },
+      claude: { label: "Anthropic Claude", short: "Claude", color: "#d97757", placeholder: "sk-ant-..." },
+      grok: { label: "xAI Grok", short: "Grok", color: "#e5e7eb", placeholder: "xai-..." }
     };
 
+    const API_BASES = [
+      window.location.protocol.startsWith("http") ? window.location.origin : null,
+      "http://127.0.0.1:8010",
+      "http://localhost:8010"
+    ].filter(Boolean);
+
+    const state = {
+      providerKeys: { openai: "", gemini: "", claude: "", grok: "" },
+      keyStatus: { openai: "unset", gemini: "unset", claude: "unset", grok: "unset" },
+      agents: [],
+      rounds: 2,
+      activeBubble: null,
+      typingRow: null,
+      scores: {},
+      scoreTotals: {},
+      round: 1
+    };
+
+    const settingsScreen = document.getElementById("settingsScreen");
     const setupScreen = document.getElementById("setupScreen");
-    const debateScreen = document.getElementById("debateScreen");
-    const agentsGrid = document.getElementById("agentsGrid");
-    const addAgentBtn = document.getElementById("addAgentBtn");
-    const startBtn = document.getElementById("startBtn");
+    const battleScreen = document.getElementById("battleScreen");
+    const providerRows = document.getElementById("providerRows");
+    const validateBtn = document.getElementById("validateBtn");
+    const continueBtn = document.getElementById("continueBtn");
+    const backToSettingsBtn = document.getElementById("backToSettingsBtn");
     const topicInput = document.getElementById("topicInput");
-    const roundOptions = document.getElementById("roundOptions");
-    const activeTopic = document.getElementById("activeTopic");
-    const agentCount = document.getElementById("agentCount");
+    const agentsGrid = document.getElementById("agentsGrid");
+    const addFighterBtn = document.getElementById("addFighterBtn");
+    const roundPills = document.getElementById("roundPills");
+    const startBattleBtn = document.getElementById("startBattleBtn");
+    const battleTopic = document.getElementById("battleTopic");
     const roundIndicator = document.getElementById("roundIndicator");
-    const chatWindow = document.getElementById("chatWindow");
+    const roundLabel = document.getElementById("roundLabel");
+    const portraitPanel = document.getElementById("portraitPanel");
+    const battleLog = document.getElementById("battleLog");
     const completeBanner = document.getElementById("completeBanner");
-    const newDebateBtn = document.getElementById("newDebateBtn");
+    const fightAgainBtn = document.getElementById("fightAgainBtn");
     const toast = document.getElementById("toast");
+    const confetti = document.getElementById("confetti");
 
-    function avatarLetter(name) {
-      return (name.trim()[0] || "?").toUpperCase();
-    }
-
-    function agentColor(index) {
-      return colors[index % colors.length];
-    }
-
-    function renderAgents() {
-      agentsGrid.innerHTML = "";
-      state.agents.forEach((agent, index) => {
-        const card = document.createElement("article");
-        card.className = "agent-card";
-        card.innerHTML = `
-          <div class="avatar" style="background:${agentColor(index)}">${avatarLetter(agent.name)}</div>
-          <div class="agent-fields">
-            <input type="text" value="${escapeAttr(agent.name)}" placeholder="Agent name" aria-label="Agent name">
-            <textarea placeholder="Personality" aria-label="Agent personality">${escapeHtml(agent.personality)}</textarea>
-          </div>
-          <button class="remove-agent" type="button" aria-label="Remove agent">×</button>
-        `;
-
-        const nameInput = card.querySelector("input");
-        const personalityInput = card.querySelector("textarea");
-        const removeButton = card.querySelector("button");
-
-        nameInput.addEventListener("input", () => {
-          state.agents[index].name = nameInput.value;
-          card.querySelector(".avatar").textContent = avatarLetter(nameInput.value);
-        });
-
-        personalityInput.addEventListener("input", () => {
-          state.agents[index].personality = personalityInput.value;
-        });
-
-        removeButton.addEventListener("click", () => {
-          if (state.agents.length <= 2) {
-            showToast("Keep at least two agents in the debate.");
-            return;
-          }
-          state.agents.splice(index, 1);
-          renderAgents();
-        });
-
-        agentsGrid.appendChild(card);
-      });
-
-      addAgentBtn.disabled = state.agents.length >= 5;
-      addAgentBtn.textContent = state.agents.length >= 5 ? "Max 5 Agents" : "+ Add Agent";
+    function showScreen(screen) {
+      [settingsScreen, setupScreen, battleScreen].forEach((item) => item.classList.remove("active"));
+      screen.classList.add("active");
     }
 
     function escapeHtml(value) {
@@ -740,195 +1087,545 @@
       }[char]));
     }
 
-    function escapeAttr(value) {
-      return escapeHtml(value).replace(/`/g, "&#096;");
-    }
-
-    function showToast(message = "Something went wrong. Try again.") {
+    function showToast(message) {
       toast.textContent = message;
       toast.style.display = "block";
       window.clearTimeout(showToast.timer);
       showToast.timer = window.setTimeout(() => {
         toast.style.display = "none";
-      }, 4200);
+      }, 4600);
     }
 
-    function scrollToBottom() {
-      chatWindow.scrollTop = chatWindow.scrollHeight;
+    function providerColor(provider) {
+      return PROVIDERS[provider]?.color || "#7c3aed";
     }
 
-    function addRoundSeparator(round, label) {
-      const separator = document.createElement("div");
-      separator.className = "round-separator";
-      separator.innerHTML = `<span>⚡ Round ${round} — ${escapeHtml(label)}</span>`;
-      chatWindow.appendChild(separator);
-      state.currentRound = round;
-      roundIndicator.textContent = `Round ${round} of ${state.rounds}`;
-      scrollToBottom();
+    function textColorFor(provider) {
+      return provider === "grok" ? "#080810" : "#05050b";
     }
 
-    function removeTyping() {
-      if (state.activeTyping) {
-        state.activeTyping.remove();
-        state.activeTyping = null;
-      }
+    function rgbaFromHex(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const value = parseInt(clean, 16);
+      const r = (value >> 16) & 255;
+      const g = (value >> 8) & 255;
+      const b = value & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
-    function showTyping(agent, role) {
-      removeTyping();
-      const color = role === "judge" ? judgeColor : colorForAgent(agent);
-      const row = document.createElement("div");
-      row.className = "message-row typing-row";
-      row.innerHTML = `
-        <div class="avatar" style="background:${color}; color:${role === "judge" ? "#191500" : "#fff"}">${role === "judge" ? "⚖️" : avatarLetter(agent)}</div>
-        <div class="message-body">
-          <div class="sender" style="color:${color}">${role === "judge" ? "⚖️ Judge" : escapeHtml(agent)}</div>
-          <div class="bubble typing-bubble">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          </div>
-        </div>
-      `;
-      chatWindow.appendChild(row);
-      state.activeTyping = row;
-      scrollToBottom();
+    function initial(name) {
+      return (name.trim()[0] || "?").toUpperCase();
     }
 
-    function colorForAgent(name) {
-      const index = state.agents.findIndex((agent) => agent.name.trim() === name);
-      return index >= 0 ? agentColor(index) : colors[0];
+    function configuredProviders() {
+      return Object.keys(PROVIDERS).filter((provider) => state.providerKeys[provider].trim());
     }
 
-    function ensureMessage(agent, role) {
-      if (state.activeMessage && state.activeMessage.agent === agent && state.activeMessage.role === role) {
-        return state.activeMessage.textEl;
-      }
-
-      removeTyping();
-      const isJudge = role === "judge";
-      const color = isJudge ? judgeColor : colorForAgent(agent);
-      const row = document.createElement("div");
-      row.className = isJudge ? "judge-row message-row" : "message-row";
-
-      if (isJudge) {
+    function renderProviderRows() {
+      providerRows.innerHTML = "";
+      Object.entries(PROVIDERS).forEach(([provider, info]) => {
+        const row = document.createElement("div");
+        row.className = "provider-row";
         row.innerHTML = `
-          <div class="message-body judge-bubble">
-            <div class="sender" style="color:${judgeColor}">⚖️ Judge</div>
-            <div class="bubble judge-bubble-text"></div>
+          <div class="provider-title" style="color:${info.color}">
+            <span>${escapeHtml(info.label)}</span>
+          </div>
+          <span class="key-dot ${state.keyStatus[provider] === "valid" ? "valid" : state.keyStatus[provider] === "invalid" ? "invalid" : ""}" id="dot-${provider}"></span>
+          <div class="key-wrap">
+            <input class="input key-input" id="key-${provider}" type="password" autocomplete="off" spellcheck="false" placeholder="${info.placeholder}" value="${escapeHtml(state.providerKeys[provider])}">
+            <button class="icon-btn show-key" type="button" title="Show or hide key" aria-label="Show or hide ${info.short} key" data-provider="${provider}">👁</button>
           </div>
         `;
-      } else {
-        row.innerHTML = `
-          <div class="avatar" style="background:${color}">${avatarLetter(agent)}</div>
-          <div class="message-body">
-            <div class="sender" style="color:${color}">${escapeHtml(agent)}</div>
-            <div class="bubble"></div>
+
+        const input = row.querySelector("input");
+        input.addEventListener("input", () => {
+          state.providerKeys[provider] = input.value;
+          state.keyStatus[provider] = input.value.trim() ? "unset" : "unset";
+          updateContinueState();
+          updateDots();
+        });
+
+        row.querySelector(".show-key").addEventListener("click", () => {
+          input.type = input.type === "password" ? "text" : "password";
+        });
+
+        providerRows.appendChild(row);
+      });
+      updateContinueState();
+    }
+
+    function updateDots() {
+      Object.keys(PROVIDERS).forEach((provider) => {
+        const dot = document.getElementById(`dot-${provider}`);
+        if (!dot) return;
+        dot.className = "key-dot";
+        if (state.keyStatus[provider] === "valid") dot.classList.add("valid");
+        if (state.keyStatus[provider] === "invalid") dot.classList.add("invalid");
+      });
+    }
+
+    function updateContinueState() {
+      continueBtn.disabled = configuredProviders().length < 2;
+    }
+
+    async function apiFetch(path, options = {}) {
+      let lastError;
+      for (const base of API_BASES) {
+        try {
+          const response = await fetch(`${base}${path}`, options);
+          if (response.ok || response.body) return response;
+          lastError = new Error(`Backend returned ${response.status}`);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error("Could not reach the backend.");
+    }
+
+    async function validateKeys() {
+      validateBtn.disabled = true;
+      validateBtn.textContent = "Validating...";
+      try {
+        const response = await apiFetch("/validate-keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state.providerKeys)
+        });
+        const result = await response.json();
+        Object.keys(PROVIDERS).forEach((provider) => {
+          state.keyStatus[provider] = state.providerKeys[provider].trim()
+            ? (result[provider] ? "valid" : "invalid")
+            : "unset";
+        });
+        updateDots();
+      } catch (error) {
+        showToast(error.message || "Key validation failed.");
+      } finally {
+        validateBtn.disabled = false;
+        validateBtn.textContent = "Validate Keys";
+      }
+    }
+
+    function buildDefaultAgents() {
+      const providers = configuredProviders();
+      const novaProvider = providers.includes("openai") ? "openai" : providers[0];
+      const rexProvider = providers.includes("grok") && providers.includes(novaProvider) && novaProvider !== "grok"
+        ? "grok"
+        : providers.find((provider) => provider !== novaProvider) || providers[1];
+      state.agents = [
+        {
+          name: "Nova",
+          personality: "Optimistic futurist who believes AI will solve all problems",
+          provider: novaProvider,
+          color: providerColor(novaProvider)
+        },
+        {
+          name: "Rex",
+          personality: "Cynical realist who distrusts hype and questions every assumption",
+          provider: rexProvider,
+          color: providerColor(rexProvider)
+        }
+      ];
+    }
+
+    function continueToSetup() {
+      if (configuredProviders().length < 2) return;
+      buildDefaultAgents();
+      renderAgents();
+      showScreen(setupScreen);
+    }
+
+    function providerOptions(selected) {
+      return configuredProviders().map((provider) => {
+        const optionSelected = provider === selected ? "selected" : "";
+        return `<option value="${provider}" ${optionSelected}>${PROVIDERS[provider].label}</option>`;
+      }).join("");
+    }
+
+    function syncAgentColors() {
+      state.agents.forEach((agent) => {
+        agent.color = providerColor(agent.provider);
+      });
+    }
+
+    function renderAgents() {
+      syncAgentColors();
+      agentsGrid.innerHTML = "";
+      state.agents.forEach((agent, index) => {
+        const card = document.createElement("article");
+        card.className = "setup-agent-card";
+        card.innerHTML = `
+          <div class="setup-avatar" style="background:${agent.color}; color:${textColorFor(agent.provider)}">${initial(agent.name)}</div>
+          <div class="agent-fields">
+            <input class="input" type="text" value="${escapeHtml(agent.name)}" placeholder="Name" aria-label="Agent name">
+            <textarea class="textarea" placeholder="Personality" aria-label="Agent personality">${escapeHtml(agent.personality)}</textarea>
+            <select class="select" aria-label="LLM provider">${providerOptions(agent.provider)}</select>
           </div>
+          <button class="icon-btn remove-btn" type="button" title="Remove fighter" aria-label="Remove fighter">×</button>
         `;
-      }
 
-      chatWindow.appendChild(row);
-      const textEl = row.querySelector(".bubble");
-      state.activeMessage = { agent, role, textEl };
-      scrollToBottom();
-      return textEl;
+        const avatar = card.querySelector(".setup-avatar");
+        const nameInput = card.querySelector("input");
+        const personalityInput = card.querySelector("textarea");
+        const select = card.querySelector("select");
+        const removeButton = card.querySelector(".remove-btn");
+
+        nameInput.addEventListener("input", () => {
+          agent.name = nameInput.value;
+          avatar.textContent = initial(agent.name);
+        });
+        personalityInput.addEventListener("input", () => {
+          agent.personality = personalityInput.value;
+        });
+        select.addEventListener("change", () => {
+          agent.provider = select.value;
+          agent.color = providerColor(agent.provider);
+          renderAgents();
+        });
+        removeButton.addEventListener("click", () => {
+          if (state.agents.length <= 2) {
+            showToast("Keep at least two fighters in the arena.");
+            return;
+          }
+          state.agents.splice(index, 1);
+          renderAgents();
+        });
+
+        agentsGrid.appendChild(card);
+      });
+      addFighterBtn.disabled = state.agents.length >= 5;
+      addFighterBtn.textContent = state.agents.length >= 5 ? "Max 5 Fighters" : "+ Add Fighter";
     }
 
-    function appendChunk(event) {
-      const textEl = ensureMessage(event.agent, event.role);
-      textEl.textContent += event.chunk;
-      scrollToBottom();
+    function addFighter() {
+      if (state.agents.length >= 5) return;
+      const providers = configuredProviders();
+      const provider = providers[state.agents.length % providers.length];
+      state.agents.push({
+        name: `Fighter ${state.agents.length + 1}`,
+        personality: "Sharp, concise challenger who hunts for weak assumptions",
+        provider,
+        color: providerColor(provider)
+      });
+      renderAgents();
     }
 
-    function handleEvent(event) {
-      if (event.type === "round_start") {
-        state.activeMessage = null;
-        addRoundSeparator(event.round, event.label);
-        const firstAgent = state.agents[0]?.name || "Agent";
-        showTyping(firstAgent, "debater");
-        return;
-      }
-
-      if (event.type === "judge_start") {
-        state.activeMessage = null;
-        showTyping("Judge", "judge");
-        return;
-      }
-
-      if (event.type === "message") {
-        if (event.chunk === "") {
-          state.activeMessage = null;
-          showTyping(event.agent, event.role);
-          return;
-        }
-
-        if (!state.activeMessage || state.activeMessage.agent !== event.agent || state.activeMessage.role !== event.role) {
-          showTyping(event.agent, event.role);
-        }
-        appendChunk(event);
-        return;
-      }
-
-      if (event.type === "done") {
-        removeTyping();
-        state.activeMessage = null;
-        roundIndicator.textContent = "Verdict delivered";
-        completeBanner.style.display = "flex";
-        scrollToBottom();
-        return;
-      }
-
-      if (event.type === "error") {
-        throw new Error(event.message || "Something went wrong. Try again.");
-      }
-    }
-
-    function validateForm() {
+    function validateBattleForm() {
       const topic = topicInput.value.trim();
       if (!topic) {
-        showToast("Add a debate topic first.");
+        showToast("Choose a topic before the fight starts.");
         topicInput.focus();
         return null;
       }
 
       const agents = state.agents.map((agent) => ({
         name: agent.name.trim(),
-        personality: agent.personality.trim()
+        personality: agent.personality.trim(),
+        provider: agent.provider,
+        color: providerColor(agent.provider)
       }));
 
       if (agents.some((agent) => !agent.name || !agent.personality)) {
-        showToast("Every agent needs a name and personality.");
+        showToast("Every fighter needs a name and personality.");
         return null;
       }
 
-      const names = new Set(agents.map((agent) => agent.name.toLowerCase()));
-      if (names.size !== agents.length) {
-        showToast("Agent names must be unique.");
+      if (new Set(agents.map((agent) => agent.name.toLowerCase())).size !== agents.length) {
+        showToast("Fighter names must be unique.");
         return null;
       }
 
-      return { topic, agents, rounds: state.rounds };
+      if (agents.some((agent) => !state.providerKeys[agent.provider].trim())) {
+        showToast("Every selected provider needs a configured key.");
+        return null;
+      }
+
+      return {
+        topic,
+        agents,
+        rounds: state.rounds,
+        provider_keys: state.providerKeys
+      };
     }
 
-    async function startDebate() {
-      const payload = validateForm();
+    function renderPortraits(agents) {
+      portraitPanel.innerHTML = "";
+      agents.forEach((agent) => {
+        const color = providerColor(agent.provider);
+        const card = document.createElement("article");
+        card.className = "portrait-card";
+        card.dataset.agent = agent.name;
+        card.style.setProperty("--agent-color", color);
+        card.style.setProperty("--agent-glow", rgbaFromHex(color, 0.5));
+        card.style.setProperty("--avatar-text", textColorFor(agent.provider));
+        card.innerHTML = `
+          <div class="winner-crown">👑</div>
+          <div class="battle-avatar">${initial(agent.name)}</div>
+          <div class="rpg-name">${escapeHtml(agent.name)}</div>
+          <div class="provider-badge">${escapeHtml(PROVIDERS[agent.provider].short)}</div>
+          <div class="strength-block">
+            <div class="stat-head">
+              <span class="stat-label">ARG STRENGTH</span>
+              <span class="score-value">0/100</span>
+            </div>
+            <div class="strength-track"><div class="strength-fill"></div></div>
+          </div>
+          <div class="status-text">Listening</div>
+        `;
+        portraitPanel.appendChild(card);
+      });
+    }
+
+    function setActiveAgent(agentName) {
+      portraitPanel.querySelectorAll(".portrait-card").forEach((card) => {
+        const active = card.dataset.agent === agentName;
+        card.classList.toggle("active", active);
+        const status = card.querySelector(".status-text");
+        status.textContent = active ? "Preparing argument..." : "Listening";
+      });
+    }
+
+    function setAgentSpeaking(agentName) {
+      const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(agentName)}"]`);
+      if (!card) return;
+      card.querySelector(".status-text").textContent = "Speaking...";
+    }
+
+    function updateScore(agentName, score) {
+      state.scores[agentName] = score;
+      if (!state.scoreTotals[agentName]) state.scoreTotals[agentName] = { total: 0, count: 0 };
+      state.scoreTotals[agentName].total += score;
+      state.scoreTotals[agentName].count += 1;
+      const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(agentName)}"]`);
+      if (!card) return;
+      card.querySelector(".strength-fill").style.width = `${score}%`;
+      card.querySelector(".score-value").textContent = `${score}/100`;
+      card.querySelector(".status-text").textContent = "Scored";
+    }
+
+    function scrollLog() {
+      battleLog.scrollTop = battleLog.scrollHeight;
+    }
+
+    function addRoundBanner(round, label) {
+      const banner = document.createElement("div");
+      banner.className = "round-banner";
+      banner.textContent = `⚔️ ROUND ${round} — ${label}`;
+      battleLog.appendChild(banner);
+      roundIndicator.textContent = `ROUND ${round} OF ${state.rounds}`;
+      roundLabel.textContent = label;
+      state.round = round;
+      state.activeBubble = null;
+      scrollLog();
+    }
+
+    function removeTyping() {
+      if (state.typingRow) {
+        state.typingRow.remove();
+        state.typingRow = null;
+      }
+    }
+
+    function showTyping(agentName, role = "debater") {
+      removeTyping();
+      const agent = state.agents.find((item) => item.name === agentName);
+      const provider = agent?.provider || "openai";
+      const color = role === "judge" ? "#facc15" : providerColor(provider);
+      const row = document.createElement("div");
+      row.className = "message-row typing-row";
+      row.style.setProperty("--agent-color", color);
+      row.style.setProperty("--avatar-text", role === "judge" ? "#221a00" : textColorFor(provider));
+      row.innerHTML = `
+        <div class="chat-avatar">${role === "judge" ? "⚖️" : initial(agentName)}</div>
+        <div class="message-body">
+          <div class="message-head">
+            <span class="message-name">${role === "judge" ? "Judge" : escapeHtml(agentName)}</span>
+            <span class="typing-copy">Preparing argument...</span>
+          </div>
+          <div class="bubble typing-bubble">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+      `;
+      battleLog.appendChild(row);
+      state.typingRow = row;
+      scrollLog();
+    }
+
+    function ensureBubble(agentName, role = "debater") {
+      if (state.activeBubble && state.activeBubble.agent === agentName && state.activeBubble.role === role) {
+        return state.activeBubble.textEl;
+      }
+
+      removeTyping();
+      if (role === "judge") {
+        const row = document.createElement("div");
+        row.className = "judge-row";
+        row.innerHTML = `
+          <div class="judge-card">
+            <div class="judge-title">⚖️ FINAL VERDICT</div>
+            <div class="judge-text"></div>
+          </div>
+        `;
+        battleLog.appendChild(row);
+        const textEl = row.querySelector(".judge-text");
+        state.activeBubble = { agent: agentName, role, textEl };
+        scrollLog();
+        return textEl;
+      }
+
+      const agent = state.agents.find((item) => item.name === agentName);
+      const provider = agent?.provider || "openai";
+      const color = providerColor(provider);
+      const row = document.createElement("div");
+      row.className = "message-row";
+      row.style.setProperty("--agent-color", color);
+      row.style.setProperty("--avatar-text", textColorFor(provider));
+      row.innerHTML = `
+        <div class="chat-avatar">${initial(agentName)}</div>
+        <div class="message-body">
+          <div class="message-head">
+            <span class="message-name">${escapeHtml(agentName)}</span>
+            <span class="provider-badge message-badge">${escapeHtml(PROVIDERS[provider].short)}</span>
+          </div>
+          <div class="bubble"></div>
+        </div>
+      `;
+      battleLog.appendChild(row);
+      const textEl = row.querySelector(".bubble");
+      state.activeBubble = { agent: agentName, role, textEl };
+      setAgentSpeaking(agentName);
+      scrollLog();
+      return textEl;
+    }
+
+    function appendMessage(event) {
+      const role = event.role === "judge" ? "judge" : "debater";
+      const textEl = ensureBubble(event.agent, role);
+      textEl.textContent += event.chunk || "";
+      scrollLog();
+    }
+
+    function winnerName() {
+      const entries = Object.entries(state.scoreTotals);
+      if (!entries.length) return null;
+      return entries
+        .map(([agent, value]) => ({ agent, average: value.total / Math.max(1, value.count) }))
+        .sort((a, b) => b.average - a.average)[0].agent;
+    }
+
+    function finishBattle() {
+      removeTyping();
+      state.activeBubble = null;
+      portraitPanel.querySelectorAll(".portrait-card").forEach((card) => {
+        card.classList.remove("active");
+        card.querySelector(".status-text").textContent = "Battle Complete";
+      });
+      const winner = winnerName();
+      if (winner) {
+        const card = portraitPanel.querySelector(`[data-agent="${CSS.escape(winner)}"]`);
+        if (card) {
+          card.classList.add("winner");
+          card.querySelector(".status-text").textContent = "Winner!";
+        }
+      }
+      completeBanner.style.display = "flex";
+      launchConfetti();
+      scrollLog();
+    }
+
+    function launchConfetti() {
+      confetti.innerHTML = "";
+      const colors = ["#7c3aed", "#4f46e5", "#10b981", "#4285f4", "#d97757", "#facc15", "#e5e7eb"];
+      for (let i = 0; i < 76; i += 1) {
+        const piece = document.createElement("i");
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.animationDelay = `${Math.random() * 0.45}s`;
+        piece.style.setProperty("--confetti-color", colors[i % colors.length]);
+        piece.style.setProperty("--confetti-rotate", `${Math.random() * 220}deg`);
+        confetti.appendChild(piece);
+      }
+      window.setTimeout(() => {
+        confetti.innerHTML = "";
+      }, 2600);
+    }
+
+    function handleSseEvent(event) {
+      if (event.type === "round_start") {
+        setActiveAgent("");
+        addRoundBanner(event.round, event.label);
+        return;
+      }
+
+      if (event.type === "agent_start") {
+        state.activeBubble = null;
+        setActiveAgent(event.agent);
+        showTyping(event.agent, "debater");
+        return;
+      }
+
+      if (event.type === "message") {
+        appendMessage(event);
+        return;
+      }
+
+      if (event.type === "score") {
+        updateScore(event.agent, Number(event.score || 0));
+        return;
+      }
+
+      if (event.type === "judge_start") {
+        state.activeBubble = null;
+        setActiveAgent("");
+        showTyping("Judge", "judge");
+        return;
+      }
+
+      if (event.type === "done") {
+        finishBattle();
+        return;
+      }
+
+      if (event.type === "error") {
+        throw new Error(event.message || "The debate stream failed.");
+      }
+    }
+
+    async function startBattle() {
+      const payload = validateBattleForm();
       if (!payload) return;
 
-      startBtn.disabled = true;
-      chatWindow.innerHTML = "";
+      state.agents = payload.agents.map((agent) => ({ ...agent }));
+      state.scores = {};
+      state.scoreTotals = {};
+      state.activeBubble = null;
+      state.typingRow = null;
+      battleLog.innerHTML = "";
       completeBanner.style.display = "none";
-      activeTopic.textContent = payload.topic;
-      agentCount.textContent = `${payload.agents.length} Agents`;
-      roundIndicator.textContent = `Round 1 of ${payload.rounds}`;
-      setupScreen.style.display = "none";
-      debateScreen.style.display = "block";
-      state.activeMessage = null;
-      state.activeTyping = null;
+      portraitPanel.innerHTML = "";
+      battleTopic.textContent = payload.topic;
+      roundIndicator.textContent = `ROUND 1 OF ${payload.rounds}`;
+      roundLabel.textContent = "Opening Strikes";
+      renderPortraits(payload.agents);
+      showScreen(battleScreen);
 
+      startBattleBtn.disabled = true;
       try {
-        const response = await openDebateStream(payload);
+        const response = await apiFetch("/debate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
         if (!response.ok || !response.body) {
-          throw new Error("Something went wrong. Try again.");
+          let message = "The debate could not start.";
+          try {
+            const error = await response.json();
+            message = error.detail || message;
+          } catch (_) {}
+          throw new Error(message);
         }
 
         const reader = response.body.getReader();
@@ -942,85 +1639,46 @@
           const events = buffer.split("\n\n");
           buffer = events.pop() || "";
 
-          for (const rawEvent of events) {
-            const line = rawEvent.split("\n").find((item) => item.startsWith("data: "));
+          for (const raw of events) {
+            const line = raw.split("\n").find((item) => item.startsWith("data: "));
             if (!line) continue;
-
-            try {
-              handleEvent(JSON.parse(line.slice(6)));
-            } catch (error) {
-              console.error("SSE parse or event error:", error, rawEvent);
-              showToast(error.message || "Something went wrong. Try again.");
-            }
+            handleSseEvent(JSON.parse(line.slice(6)));
           }
         }
       } catch (error) {
-        console.error(error);
-        showToast("Something went wrong. Try again.");
-        setupScreen.style.display = "block";
-        debateScreen.style.display = "none";
+        showToast(error.message || "The battle failed.");
+        showScreen(setupScreen);
       } finally {
         removeTyping();
-        startBtn.disabled = false;
+        startBattleBtn.disabled = false;
       }
     }
 
-    async function openDebateStream(payload) {
-      let lastError;
-
-      for (const url of API_URLS) {
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-
-          if (response.ok) {
-            return response;
-          }
-
-          lastError = new Error(`Backend returned ${response.status}`);
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      throw lastError || new Error("Something went wrong. Try again.");
-    }
-
-    function resetDebate() {
-      debateScreen.style.display = "none";
-      setupScreen.style.display = "block";
+    function resetToSetup() {
       completeBanner.style.display = "none";
-      chatWindow.innerHTML = "";
-      state.activeMessage = null;
-      state.activeTyping = null;
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      battleLog.innerHTML = "";
+      portraitPanel.innerHTML = "";
+      state.activeBubble = null;
+      state.typingRow = null;
+      showScreen(setupScreen);
     }
 
-    addAgentBtn.addEventListener("click", () => {
-      if (state.agents.length >= 5) return;
-      state.agents.push({
-        name: `Agent ${state.agents.length + 1}`,
-        personality: ""
-      });
-      renderAgents();
-    });
+    validateBtn.addEventListener("click", validateKeys);
+    continueBtn.addEventListener("click", continueToSetup);
+    backToSettingsBtn.addEventListener("click", () => showScreen(settingsScreen));
+    addFighterBtn.addEventListener("click", addFighter);
+    startBattleBtn.addEventListener("click", startBattle);
+    fightAgainBtn.addEventListener("click", resetToSetup);
 
-    roundOptions.addEventListener("click", (event) => {
+    roundPills.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-rounds]");
       if (!button) return;
       state.rounds = Number(button.dataset.rounds);
-      roundOptions.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+      roundPills.querySelectorAll(".round-pill").forEach((item) => item.classList.remove("active"));
       button.classList.add("active");
     });
 
-    startBtn.addEventListener("click", startDebate);
-    newDebateBtn.addEventListener("click", resetDebate);
-
-    state.agents = defaultAgents.map((agent) => ({ ...agent }));
-    renderAgents();
+    renderProviderRows();
   </script>
 </body>
 </html>
