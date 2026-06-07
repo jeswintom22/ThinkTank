@@ -70,21 +70,14 @@ Gemini is also supported and is the default debate provider when `GEMINI_API_KEY
 
 ## Screenshots
 
-Add final screenshots here before submission. Suggested captures:
 
 | Screen | Description | Image |
 | --- | --- | --- |
-| Landing | User enters a debate question | `docs/screenshots/landing.png` |
-| Council setup | Agents, roles, providers, rounds, and features | `docs/screenshots/setup.png` |
-| Debate chat | WhatsApp-style AI group debate | `docs/screenshots/debate-chat.png` |
-| Claim map | Live agreement and contradiction signals | `docs/screenshots/claim-map.png` |
-| JudgeAI | Response comparison and scoring | `docs/screenshots/judgeai.png` |
-
-Example Markdown once images are added:
-
-```md
-![ThinkTank debate chat](docs/screenshots/debate-chat.png)
-```
+| Landing | User enters a debate question | `![alt text](image-1.png)` |
+| Council setup | Agents, roles, providers, rounds, and features | `![alt text](image-2.png)``![alt text](image.png)` |
+| Debate chat | WhatsApp-style AI group debate |`![alt text](image-3.png)`  |
+| Claim map | Live agreement and contradiction signals | `![alt text](image-4.png)``![alt text](image-5.png) `|
+| JudgeAI | Response comparison and scoring | `![alt text](image-6.png)` |
 
 ## How to Run Locally
 
