@@ -78,9 +78,11 @@ Gemini is also supported and is the default debate provider when `GEMINI_API_KEY
 
 ![Council setup](screenshots/image%202.png)
 
+![Council setup](screenshots/image%203.png)
+
 ### Debate Chat
 
-![Debate chat](screenshots/image%203.png)
+![Debate chat](screenshots/image%204.png)
 
 ### Claim Map
 
@@ -90,9 +92,11 @@ Gemini is also supported and is the default debate provider when `GEMINI_API_KEY
 
 ![Final verdict](screenshots/image%205.png)
 
+![Final verdict](screenshots/image%206.png)
+
 ### JudgeAI
 
-![JudgeAI comparison](screenshots/image%206.png)
+![JudgeAI comparison](screenshots/image%207.png)
 
 ## How to Run Locally
 
