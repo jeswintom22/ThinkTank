@@ -70,27 +70,29 @@ Gemini is also supported and is the default debate provider when `GEMINI_API_KEY
 
 ## Screenshots
 
-The screenshots below are mapped to the uploaded images in this order:
+### Landing
 
-- `image.png`: Landing / provider selection
-- `image-1.png`: Council setup
-- `image-2.png`: Debate chat
-- `image-3.png`: Claim map
-- `image-4.png`: JudgeAI comparison
-- `image-5.png`: Final verdict
-- `image-6.png`: Overview
+![Landing screen](screenshots/image%201.png)
 
-If you want the images to render directly in GitHub, place the files in the repo with those names and keep the markdown below:
+### Council Setup
 
-```md
-![Landing screen](image.png)
-![Council setup](image-1.png)
-![Debate chat](image-2.png)
-![Claim map](image-3.png)
-![JudgeAI comparison](image-4.png)
-![Final verdict](image-5.png)
-![App overview](image-6.png)
-```
+![Council setup](screenshots/image%202.png)
+
+### Debate Chat
+
+![Debate chat](screenshots/image%203.png)
+
+### Claim Map
+
+![Claim map](screenshots/image%204.png)
+
+### Final Verdict
+
+![Final verdict](screenshots/image%205.png)
+
+### JudgeAI
+
+![JudgeAI comparison](screenshots/image%206.png)
 
 ## How to Run Locally
 
