@@ -2,7 +2,7 @@
 
 ThinkTank Pixel Council is a full-stack AI debate app that lets users ask a question, configure a small council of LLM agents, and watch them debate in a live WhatsApp-style group chat. The backend manages provider keys, streams arguments token by token, maps claims for agreement or contradiction, and produces a final verdict.
 
-## Project Overview
+## Overview
 
 ThinkTank is built for people who want to compare ideas, stress-test answers, or turn a broad question into a structured multi-perspective discussion. Instead of asking one model for one answer, the app seats multiple AI agents with different roles and personalities, lets them respond to each other over multiple rounds, and then summarizes the strongest position.
 
@@ -36,14 +36,22 @@ ThinkTank turns one prompt into a structured debate. Each AI agent approaches th
 
 - **Frontend**: React 19, Vite, CSS
 - **Backend**: Python, FastAPI, Pydantic
-- **Streaming**: Server-Sent Events
-- **LLM Providers**: Gemini via Google Generative AI SDK, OpenAI via OpenAI SDK
+- **Database**: None; runtime state is in memory
+- **APIs**: Gemini via Google Generative AI SDK, OpenAI via OpenAI SDK, Server-Sent Events for live debate streaming
+- **Hosting**: Local FastAPI static serving from `dist/`; live hosted deployment not available yet
 - **Testing**: pytest
-- **Storage**: no database; runtime state is in memory
 
-## Codex And OpenAI Usage
+## Codex / OpenAI Usage
 
-Codex was used to build and iterate on the full-stack project structure, backend API contracts, security guardrails, documentation, and frontend experience. The current app includes Codex-assisted implementation for the FastAPI backend, React/Vite UI, debate orchestration, JudgeAI workflow, tests, and the group-chat debate interface.
+Codex and ChatGPT were used across the build for:
+
+- **Ideation**: shaping ThinkTank as an AI council debate app with a companion JudgeAI evaluator.
+- **Architecture planning**: splitting the app into a React/Vite frontend, FastAPI backend, provider adapters, debate engine, analysis layer, and tests.
+- **Code generation**: building the FastAPI routes, SSE debate streaming, provider integration, React screens, and WhatsApp-style debate chat.
+- **Debugging**: fixing provider configuration flow, streaming behavior, validation rules, and frontend layout issues.
+- **Testing**: creating backend tests for debate events, validation, security headers, rate limits, and static file safety.
+- **Documentation**: generating this README and the project documentation.
+- **API integration**: wiring Gemini and OpenAI through backend-managed environment variables.
 
 OpenAI is used at runtime when `OPENAI_API_KEY` is configured:
 
@@ -53,7 +61,7 @@ OpenAI is used at runtime when `OPENAI_API_KEY` is configured:
 
 Gemini is also supported and is the default debate provider when `GEMINI_API_KEY` is configured.
 
-## Demo And Links
+## Demo
 
 - **Demo / pitch video**: add your video link here before submission.
 - **Live hosted app**: not available yet.
@@ -78,11 +86,11 @@ Example Markdown once images are added:
 ![ThinkTank debate chat](docs/screenshots/debate-chat.png)
 ```
 
-## Setup Instructions
+## How to Run Locally
 
 ### 1. Clone and enter the project
 
-```powershell
+```bash
 git clone <your-repo-url>
 cd ThinkTank
 ```
@@ -139,6 +147,15 @@ Open:
 
 ```text
 http://127.0.0.1:5173
+```
+
+Quick frontend-only command summary:
+
+```bash
+git clone <repo-url>
+cd ThinkTank
+npm install
+npm run dev
 ```
 
 ## Production-Style Local Run
