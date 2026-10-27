@@ -1,7 +1,9 @@
 from pathlib import Path
+import hmac
+import ipaddress
 import os
 import time
-from collections import defaultdict, deque
+from collections import deque
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,7 +43,17 @@ RATE_LIMITS = {
     ),
 }
 
-_rate_limit_hits: dict[tuple[str, str, str], deque[float]] = defaultdict(deque)
+RATE_LIMIT_MAX_KEYS = int(os.getenv("THINKTANK_RATE_LIMIT_MAX_KEYS", "10000"))
+ACCESS_TOKEN_HEADER = "X-ThinkTank-Token"
+UNAUTHENTICATED_PATHS = {"/api/health"}
+TRUSTED_PROXIES = [
+    ipaddress.ip_network(entry.strip(), strict=False)
+    for entry in os.getenv("THINKTANK_TRUSTED_PROXIES", "").split(",")
+    if entry.strip()
+]
+
+_rate_limit_hits: dict[tuple[str, str, str], deque[float]] = {}
+_rate_limit_last_sweep = 0.0
 
 app = FastAPI(title="ThinkTank Pixel Council", version="2.0.0")
 
@@ -55,7 +67,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", ACCESS_TOKEN_HEADER, "Authorization"],
 )
 
 if (FRONTEND_DIST / "assets").exists():
@@ -64,13 +76,9 @@ if (FRONTEND_DIST / "assets").exists():
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
-    content_length = request.headers.get("content-length")
-    if content_length:
-        try:
-            if int(content_length) > MAX_REQUEST_BYTES:
-                return JSONResponse(status_code=413, content={"detail": "Request body too large."})
-        except ValueError:
-            return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})
+    unauthorized = _check_access_token(request)
+    if unauthorized:
+        return unauthorized
 
     limited = _check_rate_limit(request)
     if limited:
@@ -89,16 +97,153 @@ async def security_middleware(request: Request, call_next):
     return response
 
 
+class BodySizeLimitMiddleware:
+    """Buffers request bodies and rejects them once the received bytes exceed the cap,
+    regardless of whether a Content-Length header was sent (e.g. chunked uploads)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        max_bytes = MAX_REQUEST_BYTES
+        for name, value in scope.get("headers", []):
+            if name == b"content-length":
+                try:
+                    declared = int(value)
+                except ValueError:
+                    declared = -1
+                if declared < 0:
+                    await _send_json(send, 400, {"detail": "Invalid Content-Length header."})
+                    return
+                if declared > max_bytes:
+                    await _send_json(send, 413, {"detail": "Request body too large."})
+                    return
+
+        chunks: list[bytes] = []
+        received = 0
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            body = message.get("body", b"")
+            received += len(body)
+            if received > max_bytes:
+                await _send_json(send, 413, {"detail": "Request body too large."})
+                return
+            chunks.append(body)
+            if not message.get("more_body", False):
+                break
+
+        buffered = {"type": "http.request", "body": b"".join(chunks), "more_body": False}
+        replayed = False
+
+        async def replay_receive():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return buffered
+            return await receive()
+
+        await self.app(scope, replay_receive, send)
+
+
+async def _send_json(send, status_code: int, content: dict) -> None:
+    response = JSONResponse(status_code=status_code, content=content, headers={"Connection": "close"})
+    await send(
+        {
+            "type": "http.response.start",
+            "status": response.status_code,
+            "headers": response.raw_headers,
+        }
+    )
+    await send({"type": "http.response.body", "body": response.body})
+
+
+app.add_middleware(BodySizeLimitMiddleware)
+
+
+def _check_access_token(request: Request) -> JSONResponse | None:
+    expected = os.getenv("THINKTANK_ACCESS_TOKEN", "")
+    path = request.url.path
+    if not expected or request.method == "OPTIONS":
+        return None
+    if not path.startswith("/api/") or path in UNAUTHENTICATED_PATHS:
+        return None
+
+    provided = request.headers.get(ACCESS_TOKEN_HEADER, "")
+    if not provided:
+        authorization = request.headers.get("authorization", "")
+        scheme, _, credentials = authorization.partition(" ")
+        if scheme.lower() == "bearer":
+            provided = credentials.strip()
+
+    if provided and hmac.compare_digest(provided.encode(), expected.encode()):
+        return None
+    return JSONResponse(status_code=401, content={"detail": "Missing or invalid access token."})
+
+
+def _is_trusted_proxy(host: str) -> bool:
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return any(address in network for network in TRUSTED_PROXIES)
+
+
+def _client_ip(request: Request) -> str:
+    peer = request.client.host if request.client else "unknown"
+    if not TRUSTED_PROXIES or not _is_trusted_proxy(peer):
+        return peer
+
+    forwarded = [
+        part.strip()
+        for header in request.headers.getlist("x-forwarded-for")
+        for part in header.split(",")
+        if part.strip()
+    ]
+    for hop in reversed(forwarded):
+        if not _is_trusted_proxy(hop):
+            return hop
+    return forwarded[0] if forwarded else peer
+
+
+def _sweep_rate_limits(now: float) -> None:
+    global _rate_limit_last_sweep
+    max_window = max((window for _, window in RATE_LIMITS.values()), default=60)
+    if now - _rate_limit_last_sweep < max_window and len(_rate_limit_hits) < RATE_LIMIT_MAX_KEYS:
+        return
+    _rate_limit_last_sweep = now
+
+    for key in list(_rate_limit_hits):
+        config = RATE_LIMITS.get((key[0], key[1]))
+        window = config[1] if config else max_window
+        hits = _rate_limit_hits[key]
+        if not hits or now - hits[-1] >= window:
+            del _rate_limit_hits[key]
+
+    overflow = len(_rate_limit_hits) - RATE_LIMIT_MAX_KEYS + 1
+    if overflow > 0:
+        oldest = sorted(_rate_limit_hits, key=lambda key: _rate_limit_hits[key][-1])[:overflow]
+        for key in oldest:
+            del _rate_limit_hits[key]
+
+
 def _check_rate_limit(request: Request) -> JSONResponse | None:
     limit_config = RATE_LIMITS.get((request.method, request.url.path))
     if limit_config is None:
         return None
 
     limit, window_seconds = limit_config
-    client_host = request.client.host if request.client else "unknown"
-    key = (request.method, request.url.path, client_host)
+    key = (request.method, request.url.path, _client_ip(request))
     now = time.monotonic()
-    hits = _rate_limit_hits[key]
+    _sweep_rate_limits(now)
+    hits = _rate_limit_hits.get(key)
+    if hits is None:
+        hits = _rate_limit_hits[key] = deque()
 
     while hits and now - hits[0] >= window_seconds:
         hits.popleft()
@@ -203,4 +348,11 @@ async def serve_frontend(path: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", "8010")), reload=True)
+    dev_mode = os.getenv("THINKTANK_DEV", "").lower() in {"1", "true", "yes"}
+    host = os.getenv("THINKTANK_HOST") or ("0.0.0.0" if dev_mode else "127.0.0.1")
+    if host not in {"127.0.0.1", "localhost", "::1"} and not os.getenv("THINKTANK_ACCESS_TOKEN"):
+        print(
+            f"WARNING: ThinkTank is listening on {host} without THINKTANK_ACCESS_TOKEN; "
+            "anyone who can reach this port can spend your provider API keys."
+        )
+    uvicorn.run("main:app", host=host, port=int(os.getenv("PORT", "8010")), reload=dev_mode)

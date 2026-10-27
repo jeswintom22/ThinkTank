@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from starlette.datastructures import Headers
 
 import main
 from thinktank.models import DebateRequest
@@ -173,3 +174,94 @@ def test_debate_provider_keys_are_length_capped():
         assert "API key for openai is too long" in str(exc)
     else:
         raise AssertionError("Oversized provider keys should be rejected")
+
+
+def test_chunked_body_over_limit_is_rejected(monkeypatch):
+    monkeypatch.setattr(main, "MAX_REQUEST_BYTES", 1024)
+    client = TestClient(main.app)
+
+    def chunks():
+        for _ in range(8):
+            yield b"x" * 512
+
+    response = client.post(
+        "/api/debate",
+        content=chunks(),
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Request body too large."
+
+
+def test_declared_content_length_over_limit_is_rejected(monkeypatch):
+    monkeypatch.setattr(main, "MAX_REQUEST_BYTES", 16)
+    client = TestClient(main.app)
+
+    response = client.post("/api/judgeai", content=b"x" * 64, headers={"Content-Type": "application/json"})
+
+    assert response.status_code == 413
+
+
+def test_access_token_required_when_configured(monkeypatch):
+    async def fake_validate_provider_key(payload):
+        return {"valid": True}
+
+    monkeypatch.setattr(main, "validate_provider_key", fake_validate_provider_key)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("THINKTANK_ACCESS_TOKEN", "s3cret-token")
+    main._rate_limit_hits.clear()
+    client = TestClient(main.app)
+    payload = {"provider": "openai", "model": "gpt-4o"}
+
+    assert client.get("/api/health").status_code == 200
+    assert client.get("/api/providers").status_code == 401
+    assert client.post("/api/validate-provider", json=payload).status_code == 401
+    assert (
+        client.post("/api/validate-provider", json=payload, headers={"X-ThinkTank-Token": "wrong"}).status_code
+        == 401
+    )
+    assert (
+        client.post("/api/validate-provider", json=payload, headers={"X-ThinkTank-Token": "s3cret-token"}).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/validate-provider", json=payload, headers={"Authorization": "Bearer s3cret-token"}
+        ).status_code
+        == 200
+    )
+
+
+def test_rate_limit_entries_expire_and_are_capped(monkeypatch):
+    monkeypatch.setitem(main.RATE_LIMITS, ("POST", "/api/validate-provider"), (2, 60))
+    monkeypatch.setattr(main, "RATE_LIMIT_MAX_KEYS", 3)
+    monkeypatch.setattr(main, "_rate_limit_last_sweep", 0.0)
+    main._rate_limit_hits.clear()
+
+    main._rate_limit_hits[("POST", "/api/validate-provider", "10.0.0.1")] = main.deque([0.0])
+    main._rate_limit_hits[("POST", "/api/validate-provider", "10.0.0.2")] = main.deque([1000.0])
+    main._sweep_rate_limits(1030.0)
+    assert ("POST", "/api/validate-provider", "10.0.0.1") not in main._rate_limit_hits
+    assert ("POST", "/api/validate-provider", "10.0.0.2") in main._rate_limit_hits
+
+    for index in range(3, 6):
+        main._rate_limit_hits[("POST", "/api/validate-provider", f"10.0.0.{index}")] = main.deque([1000.0 + index])
+    main._sweep_rate_limits(1031.0)
+    assert len(main._rate_limit_hits) < main.RATE_LIMIT_MAX_KEYS
+    assert ("POST", "/api/validate-provider", "10.0.0.2") not in main._rate_limit_hits
+    main._rate_limit_hits.clear()
+
+
+def test_forwarded_for_only_trusted_from_configured_proxy(monkeypatch):
+    class FakeRequest:
+        def __init__(self, peer, forwarded):
+            self.client = type("Client", (), {"host": peer})()
+            self.headers = Headers({"x-forwarded-for": forwarded})
+
+    monkeypatch.setattr(main, "TRUSTED_PROXIES", [])
+    assert main._client_ip(FakeRequest("10.0.0.5", "203.0.113.7")) == "10.0.0.5"
+
+    monkeypatch.setattr(main, "TRUSTED_PROXIES", [main.ipaddress.ip_network("10.0.0.0/8")])
+    assert main._client_ip(FakeRequest("10.0.0.5", "198.51.100.1, 203.0.113.7")) == "203.0.113.7"
+    assert main._client_ip(FakeRequest("192.0.2.9", "203.0.113.7")) == "192.0.2.9"
