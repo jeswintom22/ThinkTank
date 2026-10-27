@@ -57,7 +57,7 @@ function App() {
   const abortRef = useRef(null);
 
   useEffect(() => {
-    fetch("/api/providers")
+    apiFetch("/api/providers")
       .then((response) => response.json())
       .then((data) => {
         if (Array.isArray(data.providers)) {
@@ -163,7 +163,7 @@ function App() {
     setScreen("chamber");
 
     try {
-      const response = await fetch("/api/debate", {
+      const response = await apiFetch("/api/debate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: cleanTopic, rounds, agents, features }),
@@ -425,7 +425,7 @@ function JudgeAIScreen({ goBack }) {
     setJudgeError("");
     setJudgeLoading(true);
     try {
-      const response = await fetch("/api/judgeai", {
+      const response = await apiFetch("/api/judgeai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -939,6 +939,25 @@ function providerDefaults(providers, current = {}) {
       ];
     })
   );
+}
+
+const ACCESS_TOKEN_STORAGE_KEY = "thinktank-access-token";
+
+async function apiFetch(url, options = {}) {
+  const send = () => {
+    const token = window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+    const headers = { ...(options.headers || {}) };
+    if (token) headers["X-ThinkTank-Token"] = token;
+    return fetch(url, { ...options, headers });
+  };
+
+  const response = await send();
+  if (response.status !== 401) return response;
+
+  const token = window.prompt("This ThinkTank server requires an access token:");
+  if (!token) return response;
+  window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token.trim());
+  return send();
 }
 
 async function readSse(stream, onEvent) {

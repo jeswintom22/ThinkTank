@@ -208,19 +208,26 @@ Provider keys are read from backend environment variables. The browser never sen
 GEMINI_API_KEY=
 OPENAI_API_KEY=
 PORT=8010
+THINKTANK_HOST=
+THINKTANK_DEV=
+THINKTANK_ACCESS_TOKEN=
+THINKTANK_TRUSTED_PROXIES=
 THINKTANK_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8010,http://localhost:8010
 THINKTANK_MAX_REQUEST_BYTES=65536
 THINKTANK_VALIDATE_RATE_LIMIT=20
 THINKTANK_VALIDATE_RATE_WINDOW_SECONDS=60
 THINKTANK_DEBATE_RATE_LIMIT=6
 THINKTANK_DEBATE_RATE_WINDOW_SECONDS=60
+THINKTANK_RATE_LIMIT_MAX_KEYS=10000
 ```
 
 ## Security Controls
 
 - CORS is restricted by `THINKTANK_ALLOWED_ORIGINS`.
-- Expensive provider-backed endpoints have per-client IP in-memory rate limits.
-- JSON request bodies are capped by `THINKTANK_MAX_REQUEST_BYTES`.
+- `python main.py` binds to `127.0.0.1` without auto-reload by default. `THINKTANK_HOST` overrides the bind address; `THINKTANK_DEV=1` enables reload and listens on `0.0.0.0`.
+- When `THINKTANK_ACCESS_TOKEN` is set, every `/api/*` route except `/api/health` requires it via the `X-ThinkTank-Token` header or `Authorization: Bearer`. The frontend prompts for it once and stores it in `localStorage`. Set it before exposing the server beyond localhost.
+- Expensive provider-backed endpoints have per-client IP in-memory rate limits. Expired entries are evicted and the table is capped by `THINKTANK_RATE_LIMIT_MAX_KEYS`. `X-Forwarded-For` is only honored when the direct peer is listed in `THINKTANK_TRUSTED_PROXIES`.
+- Request bodies are capped by `THINKTANK_MAX_REQUEST_BYTES`, counted on the bytes actually received (chunked bodies included), not just the `Content-Length` header.
 - Provider/model combinations are checked against the backend provider allow-list.
 - Providers without backend keys are hidden from `/api/providers` and rejected if requested directly.
 - Static frontend file serving is constrained to the built `dist/` directory.
